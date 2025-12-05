@@ -6,7 +6,7 @@ class View(ft.Control):
         super().__init__()
         # page
         self._page = page
-        self._page.title = "Ontology FoundingGIDE"
+        self._page.title = "FoundingGIDE Ontology "
         self._page.horizontal_alignment = 'CENTER'
         self._page.theme_mode = ft.ThemeMode.DARK
         # controller (it is not initialized. Must be initialized in the main, after the controller is created)
