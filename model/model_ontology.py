@@ -1,4 +1,5 @@
 from model.bio_portal_client import BioPortalClient
+from model.metadata_reader import read_fields_from_columns
 
 
 class ModelOntology:
@@ -13,3 +14,7 @@ class ModelOntology:
     @property
     def bioportal(self) -> BioPortalClient:
         return self._bioportal
+
+    def read_metadata_fields(self, file_path: str, fields: tuple[str, ...]) -> dict[str, object]:
+        """Read metadata values."""
+        return read_fields_from_columns(file_path, fields)

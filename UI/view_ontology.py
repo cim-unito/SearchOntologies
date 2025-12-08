@@ -16,6 +16,7 @@ class ViewOntology(ft.Control):
         self._title = None
         self.btn_select_file = None
         self.file_picker = None
+        self.metadata_display = None
         self.btn_search = None
 
     def load_interface(self):
@@ -36,6 +37,10 @@ class ViewOntology(ft.Control):
         )
         self._page.controls.append(self.btn_select_file)
 
+        # metadata preview area
+        self.metadata_display = ft.Text("Metadata.")
+        self._page.controls.append(self.metadata_display)
+
         # button select the metadata excel file
         self.btn_search = ft.ElevatedButton(
             text="Search",
@@ -51,6 +56,13 @@ class ViewOntology(ft.Control):
             self._controller.get_metadata_excel_file(e.files)
         else:
             self.create_alert("No file selected!")
+
+    def display_metadata(self, file_path: str, metadata: dict[str, object]):
+        lines = [f"File: {file_path}"]
+        for key, value in metadata.items():
+            lines.append(f"{key}: {value}")
+        self.metadata_display.value = "\n".join(lines)
+        self.update_page()
 
     @property
     def controller(self):
