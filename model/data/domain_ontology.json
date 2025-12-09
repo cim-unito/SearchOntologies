@@ -1,0 +1,15 @@
+{
+  "disease": "doid",
+  "drugs": "chebi",
+  "anatomy": "uberon",
+  "cell_line": "cl",
+  "genomic": "ncit",
+  "imaging": "ncit",
+  "experimental_conditions": "obi",
+  "biological_biomedical_resource": "cmo",
+  "pathology": "mpath",
+  "phenotype": "mp",
+  "radiology": "radlex",
+  "analysis_ontology": "swo",
+  "strain": "efo"
+}
