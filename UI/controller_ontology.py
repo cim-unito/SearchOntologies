@@ -1,14 +1,7 @@
 import flet as ft
+from flet.core.file_picker import FilePickerFile
 
 from config import ConfigError
-
-DEFAULT_METADATA_FIELDS = (
-    "disease model",
-    "organ or tissue",
-    "imaging modality",
-    "species",
-    "strain"
-)
 
 
 class ControllerOntology:
@@ -18,7 +11,8 @@ class ControllerOntology:
         # the model, which implements the logic of the program and holds the data
         self._model = model
 
-    def get_metadata_excel_file(self, metadata_xlsx_file):
+    def get_metadata_excel_file(self,
+                                metadata_xlsx_file: list[FilePickerFile] | None):
         print(metadata_xlsx_file)
         """Read predefined fields from the selected Excel file."""
 
@@ -45,7 +39,7 @@ class ControllerOntology:
     def lookup_term(self, e):
         """BioPortal lookups from the UI."""
         try:
-            print(self._model.bioportal.search_ontology(term="cancer", ontology="DOID"))
+            print(self._model.bioportal.search_ontology(term="Mice", ontology="NCIT"))
             #return self._model.bioportal.find_term(term, ontology)
         except (ValueError, ConfigError) as exc:
             self._view.create_alert(str(exc))
