@@ -1,6 +1,6 @@
 import requests
 
-from config import Config, ConfigError
+from config.config import Config, ConfigError
 
 BIOPORTAL_URL = "https://data.bioontology.org/search"
 DEFAULT_TIMEOUT = 30

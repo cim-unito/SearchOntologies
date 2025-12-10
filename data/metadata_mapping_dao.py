@@ -4,19 +4,17 @@ from typing import Mapping
 from data.json_reader import JsonReader, JsonFormatError
 from model.domain import Domain
 from model.metadata import Metadata
-from model.ontology import Ontology
 
 
-class DomainOntologyDao:
-    DOMIAN_ONTOLOGY_JSON = Path(__file__).resolve().parent / "metadata_mapping_dao.json"
+class MetadataMappingDao:
+    METADATA_MAPPING_JSON = Path(
+        __file__).resolve().parent / "metadata_mapping.json"
 
     @classmethod
-    def load_metadata_mapping(
-            cls, domain_lookup: Mapping[str, Domain]
-    ) -> list[Metadata]:
-        """Load metadata entries and resolve domains using ``domain_lookup``."""
-
-        raw = JsonReader.read_json(cls.DOMIAN_ONTOLOGY_JSON)
+    def load_metadata_mapping(cls, domain_lookup: Mapping[str, Domain]
+                              ) -> list[Metadata]:
+        """Load metadata entries."""
+        raw = JsonReader.read_json(cls.METADATA_MAPPING_JSON)
         if not isinstance(raw, list):
             raise JsonFormatError(
                 "Expected a JSON array of metadata entries")
@@ -24,13 +22,8 @@ class DomainOntologyDao:
         domains = {name.casefold(): domain for name, domain in
                    domain_lookup.items()}
 
-        metadata_items: list[Metadata] = []
+        metadata_list: list[Metadata] = []
         for idx, item in enumerate(raw, start=1):
-            if not isinstance(item, Mapping):
-                raise JsonFormatError(
-                    f"Metadata entry #{idx} must be an object, got {type(item).__name__}"
-                )
-
             code = cls._get_required_str(item, "code", idx)
             cell_name = cls._get_required_str(item, "cell_name", idx)
             domain_name = cls._get_required_str(item, "domain", idx)
@@ -42,7 +35,7 @@ class DomainOntologyDao:
                     f"Unknown domain '{domain_name}' in metadata entry #{idx}"
                 )
 
-            metadata_items.append(
+            metadata_list.append(
                 Metadata(
                     code=code,
                     cell_name=cell_name,
@@ -51,7 +44,7 @@ class DomainOntologyDao:
                 )
             )
 
-        return metadata_items
+        return metadata_list
 
     @classmethod
     def _get_required_str(cls, mapping: Mapping[str, object], key: str,
@@ -64,7 +57,8 @@ class DomainOntologyDao:
 
         if not isinstance(value, str):
             raise JsonFormatError(
-                f"Field '{key}' in item #{index} must be a string, got {type(value).__name__}"
+                f"Field '{key}' in item #{index} must be a string,"
+                f" got {type(value).__name__}"
             )
 
         cleaned = value.strip()

@@ -1,7 +1,7 @@
 import flet as ft
 from flet.core.file_picker import FilePickerFile
 
-from config import ConfigError
+from config.config import ConfigError
 
 
 class ControllerOntology:
@@ -14,9 +14,7 @@ class ControllerOntology:
     def get_metadata_excel_file(self,
                                 metadata_xlsx_file: list[
                                                         FilePickerFile] | None):
-        print(metadata_xlsx_file)
         """Read predefined fields from the selected Excel file."""
-
         if not metadata_xlsx_file:
             self._view.create_alert("No file selected!")
             return
@@ -29,8 +27,7 @@ class ControllerOntology:
             return
 
         try:
-            metadata = self._model.read_metadata_fields(file_path,
-                                                        fields=DEFAULT_METADATA_FIELDS)
+            metadata = self._model.read_metadata_fields(file_path)
         except (ValueError, FileNotFoundError) as exc:
             self._view.create_alert(str(exc))
             return
