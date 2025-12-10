@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from data.json_reader import JsonReader, JsonFormatError
+from persistence.json_reader import JsonReader, JsonFormatError
 from model.domain import Domain
 from model.ontology import Ontology
 

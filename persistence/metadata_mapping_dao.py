@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Mapping
 
-from data.json_reader import JsonReader, JsonFormatError
+from persistence.json_reader import JsonReader, JsonFormatError
 from model.domain import Domain
 from model.metadata import Metadata
 

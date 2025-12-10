@@ -7,9 +7,9 @@ from model.domain import Domain
 class Metadata:
     code: str
     cell_name: str
-    cell_value: str
     subdomain: str
     domain: Domain = None
+    cell_value: str = ""
 
     def get_domain(self):
         return self.domain
