@@ -12,7 +12,8 @@ class ControllerOntology:
         self._model = model
 
     def get_metadata_excel_file(self,
-                                metadata_xlsx_file: list[FilePickerFile] | None):
+                                metadata_xlsx_file: list[
+                                                        FilePickerFile] | None):
         print(metadata_xlsx_file)
         """Read predefined fields from the selected Excel file."""
 
