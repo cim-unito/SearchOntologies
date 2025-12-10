@@ -5,5 +5,5 @@ from dataclasses import dataclass
 class Ontology:
     id: str
     base_uri: str
-    synonyms: str
+    synonyms: list[str]
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from model.data.domain import Domain
+from model.domain import Domain
 
 
 @dataclass

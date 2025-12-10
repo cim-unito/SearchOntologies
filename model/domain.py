@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from model.data.ontology import Ontology
+from model.ontology import Ontology
 
 
-@dataclass(frozen=True)
+@dataclass
 class Domain:
     id: str
     ontology: Ontology
