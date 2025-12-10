@@ -19,7 +19,7 @@ class ModelOntology:
     def bioportal(self) -> BioPortalClient:
         return self._bioportal
 
-    def read_metadata_fields(self, file_path: str) -> dict[str, object]:
+    def read_metadata_fields(self, file_path: str):
         """Read metadata values."""
         a = self._metadata
         return read_fields_from_columns(file_path)
