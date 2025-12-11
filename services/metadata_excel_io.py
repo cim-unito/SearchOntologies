@@ -6,6 +6,7 @@ from openpyxl.workbook import Workbook
 
 from model.metadata import Metadata
 
+DEFAULT_OFFSET = 3
 
 class MetadataExcelIO:
     """Handle reading and writing metadata values from/to Excel files.
@@ -22,13 +23,14 @@ class MetadataExcelIO:
         read from the cell immediately to the right.
         """
 
-        workbook = load_workbook(file_path, read_only=True, data_only=True)
+        workbook = load_workbook(file_path, data_only=True)
         metadata_by_code = {m.code.strip().upper(): m for m in metadata_list}
-        missing_codes = set(metadata_by_code.keys())
+        missing_codes = list(set(metadata_by_code.keys()))
+        iteration = 0
 
         try:
             for sheet in workbook.worksheets:
-                for code in list(missing_codes):
+                for code in missing_codes:
                     metadata = metadata_by_code[code]
                     try:
                         cell = sheet[code]
@@ -37,12 +39,13 @@ class MetadataExcelIO:
                             f"Invalid cell coordinate '{code}' for metadata"
                             f"'{metadata.cell_name}'"
                         )
-                        missing_codes.discard(code)
+                        iteration += 1
                         continue
 
                     label = self._normalize(cell.value)
                     expected_label = self._normalize(metadata.cell_name)
                     if label is None:
+                        iteration += 1
                         continue
                     if expected_label is None or label != expected_label:
                         print(
@@ -50,23 +53,18 @@ class MetadataExcelIO:
                             f"match expected name. Expected"
                             f"'{metadata.cell_name}', found '{cell.value}'"
                         )
+                        iteration += 1
                         continue
-
-                    neighbor_value = self._stringify(
-                        cell.offset(row=0, column=1).value)
+                    neighbor_value = cell.offset(row=0,
+                                                 column=DEFAULT_OFFSET)
+                    neighbor_value = self._stringify(neighbor_value.value)
                     metadata.cell_value = neighbor_value
-                    missing_codes.discard(code)
+                    iteration += 1
 
-                if not missing_codes:
+                if iteration == len(missing_codes):
                     break
         finally:
             workbook.close()
-
-        if missing_codes:
-            print(
-                f"Metadata codes not found in workbook:"
-                f"{', '.join(sorted(missing_codes))}"
-            )
 
         return list(metadata_list)
 
@@ -79,8 +77,8 @@ class MetadataExcelIO:
         cleaned = value.strip()
         return cleaned.casefold() if cleaned else None
 
-    def _stringify(self, value: object) -> str | None:
+    def _stringify(self, value: object) -> str:
         if value is None:
-            return None
+            return ""
         text = str(value).strip()
-        return text or None
+        return text
