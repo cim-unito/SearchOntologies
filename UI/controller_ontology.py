@@ -32,13 +32,12 @@ class ControllerOntology:
             self._view.create_alert(str(exc))
             return
 
-        self._view.display_metadata(file_path, metadata)
+        #self._view.display_metadata(file_path, metadata)
 
     def lookup_term(self, e):
         """BioPortal lookups from the UI."""
         try:
-            print(self._model.bioportal.search_ontology(term="Mice", ontology="NCIT"))
-            #return self._model.bioportal.find_term(term, ontology)
+            self._model.search_ontology_from_metadata()
         except (ValueError, ConfigError) as exc:
             self._view.create_alert(str(exc))
             return None

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Iterable
 
 from openpyxl import load_workbook
 from openpyxl.workbook import Workbook
@@ -13,7 +12,7 @@ class MetadataExcelIO:
     """
 
     def read_metadata_values(
-            self, metadata_list: Iterable[Metadata], file_path: str | Path
+            self, metadata_list: list[Metadata], file_path: Path
     ) -> list[Metadata] | None:
         """Populate metadata ``cell_value`` fields using the given Excel file.
 

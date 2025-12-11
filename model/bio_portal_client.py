@@ -27,13 +27,13 @@ class BioPortalClient:
     def api_key(self) -> str:
         return self._api_key
 
-    def search_ontology(self, term: str, ontology: str) -> str | None:
+    def search_ontology(self, term: str, ontology: str) -> dict | None:
         """
-        Search a single ontology and return the best-matching identifier.
+        Search a single ontology and return details of the best match.
 
-        Raises:
-            BioPortalError: when the service returns an unexpected status code
-                or the response cannot be parsed.
+        The returned dictionary contains, when available:
+        ``identifier`` (best IRI/obo id), ``notation`` (compact code), ``purl``
+        and ``synonyms`` (list of strings).
         """
 
         params = {"q": term, "ontologies": ontology, "apikey": self._api_key}
@@ -62,7 +62,15 @@ class BioPortalClient:
         if not items:
             return None
 
-        return self._best_identifier(items[0])
+        first_item = items[0]
+        identifier = self._best_identifier(first_item)
+
+        return {
+            "identifier": identifier,
+            "notation": self._best_notation(first_item, identifier),
+            "purl": self._extract_purl(first_item, identifier),
+            "synonyms": self._extract_synonyms(first_item),
+        }
 
     @staticmethod
     def _best_identifier(item) -> str | None:
@@ -73,3 +81,41 @@ class BioPortalClient:
             if candidate:
                 return str(candidate)
         return None
+
+    @staticmethod
+    def _best_notation(item: dict, identifier: str | None) -> str:
+        """Extract a compact notation (e.g., ``162`` from ``DOID:162``)."""
+
+        notation = item.get("notation") or item.get("obo_id")
+        if isinstance(notation, str) and notation:
+            if ":" in notation:
+                return notation.split(":", maxsplit=1)[-1]
+            return notation
+
+        if identifier and "_" in identifier:
+            return identifier.rsplit("_", maxsplit=1)[-1]
+
+        if identifier and "/" in identifier:
+            return identifier.rstrip("/").rsplit("/", maxsplit=1)[-1]
+
+        return ""
+
+    @staticmethod
+    def _extract_purl(item: dict, identifier: str | None) -> str:
+        """Return the primary IRI/purl if present."""
+
+        iri = item.get("@id") or item.get("links", {}).get("self")
+        if iri:
+            return str(iri)
+        return identifier or ""
+
+    @staticmethod
+    def _extract_synonyms(item: dict) -> list[str]:
+        """Collect synonyms from common BioPortal fields."""
+
+        candidates = item.get("synonym") or item.get("synonyms") or []
+        if isinstance(candidates, str):
+            return [candidates.strip()] if candidates.strip() else []
+        if isinstance(candidates, list):
+            return [str(s).strip() for s in candidates if str(s).strip()]
+        return []

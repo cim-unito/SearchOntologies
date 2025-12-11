@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from model.bio_portal_client import BioPortalClient
+from model.ontology import Ontology
 from persistence.domain_ontology_dao import DomainOntologyDao
 from persistence.metadata_mapping_dao import MetadataMappingDao
 from services.metadata_excel_io import MetadataExcelIO
@@ -29,6 +32,38 @@ class ModelOntology:
         value matches ``metadata.cell_name``. The value to be stored in
         ``metadata.cell_value`` is read from the adjacent cell to the right.
         """
+        file_path = Path(file_path)
+        return self._metadata_excel_io.read_metadata_values(self._metadata, file_path)
 
-        return self._metadata_excel_io.read_metadata_values(self._metadata,
-                                                            file_path)
+    def search_ontology_from_metadata(self):
+        """Use BioPortal to populate ontology details for each metadata term.
+
+        The Excel-derived ``cell_value`` of each metadata entry is used as
+        search term and the corresponding ``domain.ontology.id`` drives which
+        ontology is queried. When a match is found, a dedicated ``Ontology``
+        instance is attached to the metadata with ``value`` (notation),
+        ``base_uri`` (purl/IRI) and ``synonyms`` populated.
+        """
+
+        for metadata in self._metadata:
+            term = metadata.cell_value.upper()
+            ontology_id = metadata.domain.ontology.id.upper()
+
+            if not term:
+                continue
+
+            result = self._bioportal.search_ontology(term=term,
+                                                     ontology=ontology_id)
+            if result is None:
+                metadata.ontology = Ontology(id=ontology_id)
+                continue
+
+            metadata.domain.ontology = Ontology(
+                id=ontology_id,
+                value=result.get("notation", "") or result.get("identifier",
+                                                               ""),
+                base_uri=result.get("purl", ""),
+                synonyms=result.get("synonyms", []),
+            )
+
+        return self._metadata
