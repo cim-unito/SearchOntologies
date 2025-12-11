@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Dict
 
 from model.metadata import Metadata
 
@@ -8,4 +8,4 @@ from model.metadata import Metadata
 class MetadataContainer:
     sheet_name: str
     column_index: int
-    cells: List[Metadata]
+    cells: Dict[str, Metadata]
