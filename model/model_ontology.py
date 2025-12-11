@@ -33,7 +33,8 @@ class ModelOntology:
         ``metadata.cell_value`` is read from the adjacent cell to the right.
         """
         file_path = Path(file_path)
-        return self._metadata_excel_io.read_metadata_values(self._metadata, file_path)
+        return self._metadata_excel_io.read_metadata_values(self._metadata,
+                                                            file_path)
 
     def search_ontology_from_metadata(self):
         """Use BioPortal to populate ontology details for each metadata term.

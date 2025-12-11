@@ -4,16 +4,16 @@ from openpyxl import load_workbook
 from openpyxl.workbook import Workbook
 
 from model.metadata import Metadata
+from model.metadata_container import MetadataContainer
 
-DEFAULT_OFFSET = 3
 
 class MetadataExcelIO:
     """Handle reading and writing metadata values from/to Excel files.
     """
 
     def read_metadata_values(
-            self, metadata_list: list[Metadata], file_path: Path
-    ) -> list[Metadata] | None:
+            self, metadata: MetadataContainer, file_path: Path
+    ) -> MetadataContainer | None:
         """Populate metadata ``cell_value`` fields using the given Excel file.
 
         The Excel sheet is expected to contain a cell per metadata item whose
@@ -23,8 +23,7 @@ class MetadataExcelIO:
         """
 
         workbook = load_workbook(file_path, data_only=True)
-        metadata_by_code = {m.code.strip().upper(): m for m in metadata_list}
-        missing_codes = list(set(metadata_by_code.keys()))
+        missing_codes = list(set(metadata.cells.keys()))
         iteration = 0
 
         try:
