@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict
 
 from model.metadata import Metadata
@@ -8,4 +8,4 @@ from model.metadata import Metadata
 class MetadataContainer:
     sheet_name: str
     column_index: int
-    cells: Dict[str, Metadata]
+    cells: Dict[str, Metadata] = field(default_factory=dict)
