@@ -3,68 +3,73 @@ from pathlib import Path
 from openpyxl import load_workbook
 from openpyxl.workbook import Workbook
 
-from model.metadata import Metadata
 from model.metadata_container import MetadataContainer
 
 
 class MetadataExcelIO:
-    """Handle reading and writing metadata values from/to Excel files.
-    """
+    """Handle reading and writing metadata values from/to Excel files."""
 
     def read_metadata_values(
             self, metadata: MetadataContainer, file_path: Path
     ) -> MetadataContainer | None:
-        """Populate metadata ``cell_value`` fields using the given Excel file.
-
-        The Excel sheet is expected to contain a cell per metadata item whose
-        coordinate matches ``metadata.code`` and whose value matches
-        ``metadata.cell_name`` (case-insensitive). The actual metadata value is
-        read from the cell immediately to the right.
-        """
-
-        workbook = load_workbook(file_path, data_only=True)
-        missing_codes = list(set(metadata.cells.keys()))
-        iteration = 0
+        """Populate metadata `values fields using the given Excel file."""
+        workbook: Workbook = load_workbook(file_path,
+                                           read_only=True,
+                                           data_only=True)
+        missing_codes = list(set(metadata.codes()))
 
         try:
-            for sheet in workbook.worksheets:
-                for code in missing_codes:
-                    metadata = metadata_by_code[code]
-                    try:
-                        cell = sheet[code]
-                    except ValueError:
-                        print(
-                            f"Invalid cell coordinate '{code}' for metadata"
-                            f"'{metadata.cell_name}'"
-                        )
-                        iteration += 1
-                        continue
+            try:
+                sheet = workbook[metadata.sheet_name]
+            except KeyError:
+                print(
+                    f"Sheet '{metadata.sheet_name}' not found in"
+                    f" '{file_path}'. Available sheets:"
+                    f" {', '.join(workbook.sheetnames)}"
+                )
+                return metadata
 
-                    label = self._normalize(cell.value)
-                    expected_label = self._normalize(metadata.cell_name)
-                    if label is None:
-                        iteration += 1
-                        continue
-                    if expected_label is None or label != expected_label:
-                        print(
-                            f"Cell {code} in sheet '{sheet.title}' does not"
-                            f"match expected name. Expected"
-                            f"'{metadata.cell_name}', found '{cell.value}'"
-                        )
-                        iteration += 1
-                        continue
-                    neighbor_value = cell.offset(row=0,
-                                                 column=DEFAULT_OFFSET)
-                    neighbor_value = self._stringify(neighbor_value.value)
-                    metadata.cell_value = neighbor_value
-                    iteration += 1
+            target_column = metadata.column_index
+            if target_column < 1:
+                print(
+                    f"column_index must be a positive integer;"
+                    f" got {target_column}"
+                )
+                return metadata
 
-                if iteration == len(missing_codes):
-                    break
+            for code in missing_codes:
+                definition = metadata.get_definition(code)
+                if definition is None:
+                    continue
+
+                try:
+                    cell = sheet[code]
+                except ValueError:
+                    print(
+                        f"Invalid cell coordinate '{code}' for metadata"
+                        f" '{definition.cell_name}'"
+                    )
+                    continue
+
+                label = self._normalize(cell.value)
+                expected_label = self._normalize(definition.cell_name)
+                if label is None:
+                    continue
+                if expected_label is None or label != expected_label:
+                    print(
+                        f"Cell {code} in sheet '{sheet.title}' does not"
+                        f" match expected name. Expected"
+                        f" '{definition.cell_name}', found '{cell.value}'"
+                    )
+                    continue
+
+                value_cell = sheet.cell(row=cell.row, column=target_column)
+                value = self._stringify(value_cell.value)
+                metadata.set_value(code, value)
         finally:
             workbook.close()
 
-        return list(metadata_list)
+        return metadata
 
     def write_metadata_values(self):
         pass
@@ -75,8 +80,8 @@ class MetadataExcelIO:
         cleaned = value.strip()
         return cleaned.casefold() if cleaned else None
 
-    def _stringify(self, value: object) -> str:
+    def _stringify(self, value: object) -> str | None:
         if value is None:
-            return ""
+            return None
         text = str(value).strip()
-        return text
+        return text.casefold() if text else None

@@ -8,3 +8,5 @@ class Domain:
     id: str
     ontology: Ontology
 
+    def get_ontology(self):
+        return self.ontology

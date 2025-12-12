@@ -105,9 +105,80 @@ class BioPortalClient:
         """Return the primary IRI/purl if present."""
 
         iri = item.get("@id") or item.get("links", {}).get("self")
+        # Prefer OBO-style PURLs when an ``obo_id``/CURIE is available so that
+        # NCIT, MONDO, DOID, etc. are always returned in the
+        # ``http://purl.obolibrary.org/obo/`` form.
+        for candidate in (item.get("obo_id"), identifier):
+            purl = BioPortalClient._obo_id_to_purl(candidate)
+            if purl:
+                return purl
+
+        iri = item.get("@id") or item.get("links", {}).get("self") or identifier
+
+        ncit_purl = BioPortalClient._ncit_iri_to_purl(iri)
+        if ncit_purl:
+            return ncit_purl
+
         if iri:
             return str(iri)
         return identifier or ""
+
+    @staticmethod
+    def _obo_id_to_purl(value: str | None) -> str:
+        """Convert CURIE/obo_id values to an OBO PURL if possible."""
+
+        if not isinstance(value, str):
+            return ""
+
+        trimmed = value.strip()
+        if not trimmed:
+            return ""
+
+        if trimmed.startswith(("http://purl.obolibrary.org/obo/",
+                                "https://purl.obolibrary.org/obo/")):
+            return trimmed
+
+        # Ignore full IRIs such as "http://ncicb.nci.nih.gov/..." to avoid
+        # producing broken PURLs like
+        # ``http://purl.obolibrary.org/obo/http_//ncicb.nci.nih.gov/...``.
+        if "://" in trimmed or "/" in trimmed.split(":", maxsplit=1)[-1]:
+            return ""
+
+        if ":" in trimmed:
+            prefix, local_id = trimmed.split(":", maxsplit=1)
+        elif "_" in trimmed:
+            prefix, local_id = trimmed.split("_", maxsplit=1)
+        else:
+            return ""
+
+        if not prefix or not local_id:
+            return ""
+        return f"http://purl.obolibrary.org/obo/{prefix}_{local_id}"
+
+    @staticmethod
+    def _ncit_iri_to_purl(value: str | None) -> str:
+        """Convert common NCIT IRIs to the canonical OBO PURL form."""
+
+        if not isinstance(value, str):
+            return ""
+
+        trimmed = value.strip()
+        if not trimmed:
+            return ""
+
+        if trimmed.startswith(("http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#",
+                                "https://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#")):
+            local_id = trimmed.rsplit("#", maxsplit=1)[-1]
+        elif trimmed.startswith(("http://purl.bioontology.org/ontology/NCIT/",
+                                  "https://purl.bioontology.org/ontology/NCIT/")):
+            local_id = trimmed.rstrip("/").rsplit("/", maxsplit=1)[-1]
+        else:
+            return ""
+
+        if not local_id:
+            return ""
+
+        return f"http://purl.obolibrary.org/obo/NCIT_{local_id}"
 
     @staticmethod
     def _extract_synonyms(item: dict) -> list[str]:

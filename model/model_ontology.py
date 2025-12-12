@@ -25,41 +25,31 @@ class ModelOntology:
         return self._bioportal
 
     def read_metadata_fields(self, file_path: str):
-        """Populate metadata values by reading the provided Excel file.
-
-        The Excel file is expected to contain, for each metadata entry, a cell
-        whose coordinate matches ``metadata.code`` (e.g. ``"B29"``) and whose
-        value matches ``metadata.cell_name``. The value to be stored in
-        ``metadata.cell_value`` is read from the adjacent cell to the right.
-        """
+        """Populate metadata values by reading the provided Excel file."""
         file_path = Path(file_path)
         return self._metadata_excel_io.read_metadata_values(self._metadata,
                                                             file_path)
 
     def search_ontology_from_metadata(self):
-        """Use BioPortal to populate ontology details for each metadata term.
-
-        The Excel-derived ``cell_value`` of each metadata entry is used as
-        search term and the corresponding ``domain.ontology.id`` drives which
-        ontology is queried. When a match is found, a dedicated ``Ontology``
-        instance is attached to the metadata with ``value`` (notation),
-        ``base_uri`` (purl/IRI) and ``synonyms`` populated.
+        """
+        Use BioPortal to populate ontology details for each metadata term.
         """
 
-        for metadata in self._metadata:
-            term = metadata.cell_value.upper()
-            ontology_id = metadata.domain.ontology.id.upper()
+        for definition, cell_value in self._metadata:
+            domain = definition.domain
 
-            if not term:
+            if cell_value is None or domain is None or domain.ontology is None:
                 continue
 
+            term = cell_value.upper()
+            ontology_id = domain.ontology.id.upper()
             result = self._bioportal.search_ontology(term=term,
                                                      ontology=ontology_id)
             if result is None:
-                metadata.ontology = Ontology(id=ontology_id)
+                domain.ontology = Ontology(id=ontology_id)
                 continue
 
-            metadata.domain.ontology = Ontology(
+            domain.ontology = Ontology(
                 id=ontology_id,
                 value=result.get("notation", "") or result.get("identifier",
                                                                ""),
