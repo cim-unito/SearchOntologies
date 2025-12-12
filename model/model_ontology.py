@@ -14,8 +14,14 @@ class ModelOntology:
 
     def __init__(self, api_key=None,
                  metadata_excel_io: MetadataExcelIO | None = None):
-        self._bioportal = BioPortalClient(api_key=api_key)
         self._domains = DomainOntologyDao.load_domain_ontologies()
+        allowed_ontologies = {
+            domain.ontology.id.upper()
+            for domain in self._domains.values()
+            if domain.ontology and domain.ontology.id
+        }
+        self._bioportal = BioPortalClient(
+            api_key=api_key, allowed_ontologies=allowed_ontologies)
         self._metadata = MetadataMappingDao.load_metadata_mapping(
             self._domains)
         self._metadata_excel_io = metadata_excel_io or MetadataExcelIO()
