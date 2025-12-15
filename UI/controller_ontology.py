@@ -39,6 +39,7 @@ class ControllerOntology:
         """BioPortal lookups from the UI."""
         try:
             metadata_container = self._model.search_ontology_from_metadata()
+            self._view.update_metadata_table(self._build_metadata_rows(metadata_container))
         except (ValueError, ConfigError) as exc:
             self._view.create_alert(str(exc))
             return None
