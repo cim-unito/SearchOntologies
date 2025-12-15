@@ -42,7 +42,6 @@ class ModelOntology:
         """
         Use BioPortal to populate ontology details for each metadata term.
         """
-
         metadata_dict = self._metadata_container.get_cells()
         for code, meta in metadata_dict.items():
             domain = meta.get_domain()

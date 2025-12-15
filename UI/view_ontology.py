@@ -1,7 +1,18 @@
 import flet as ft
 
+from model.metadata_container import MetadataContainer
+
 
 class ViewOntology(ft.Control):
+    COLUMN_WIDTHS = {
+        "code": 130,
+        "subdomain": 140,
+        "value": 220,
+        "ontology": 150,
+        "synonyms": 200,
+        "iri": 220,
+    }
+
     def __init__(self, page: ft.Page):
         super().__init__()
         # page
@@ -9,6 +20,7 @@ class ViewOntology(ft.Control):
         self._page.title = "FoundingGIDE Ontology "
         self._page.horizontal_alignment = 'CENTER'
         self._page.theme_mode = ft.ThemeMode.DARK
+        self._page.scroll = ft.ScrollMode.AUTO
         # controller (it is not initialized. Must be initialized in the main,
         # after the controller is created)
         self._controller = None
@@ -40,15 +52,27 @@ class ViewOntology(ft.Control):
         # metadata table
         self.dt_metadata = ft.DataTable(
             columns=[
-                ft.DataColumn(ft.Text("Keyword")),
-                ft.DataColumn(ft.Text("Value")),
-                ft.DataColumn(ft.Text("Ontology")),
-                ft.DataColumn(ft.Text("Synonyms")),
-                ft.DataColumn(ft.Text("IRI")),
+                self._build_column("Code", "code"),
+                self._build_column("Subdomain", "subdomain"),
+                self._build_column("Value", "value"),
+                self._build_column("Ontology", "ontology"),
+                self._build_column("Synonyms", "synonyms"),
+                self._build_column("IRI", "iri"),
             ],
             rows=[],
+            data_row_min_height=44,
+            data_row_max_height=240,
         )
-        self._page.controls.append(self.dt_metadata)
+        table_width = sum(self.COLUMN_WIDTHS.values()) + 40
+        self._page.controls.append(
+            ft.Container(
+                width=table_width,
+                expand=True,
+                content=ft.Column([
+                    self.dt_metadata
+                ], scroll=ft.ScrollMode.AUTO)
+            )
+        )
 
         # button select the metadata excel file
         self.btn_search = ft.ElevatedButton(
@@ -66,11 +90,33 @@ class ViewOntology(ft.Control):
         else:
             self.create_alert("No file selected!")
 
-    def display_metadata(self, file_path: str, metadata: dict[str, object]):
-        lines = [f"File: {file_path}"]
-        for key, value in metadata.items():
-            lines.append(f"{key}: {value}")
-        self.metadata_display.value = "\n".join(lines)
+    def update_metadata_table(self, metadata_container: MetadataContainer):
+        """Populate the metadata table with code, subdomain and value."""
+        rows = []
+        for code in sorted(metadata_container.get_cells().keys(), key=str.lower):
+            metadata = metadata_container.get_metadata(code)
+            if metadata is None:
+                continue
+
+            ontology = metadata.domain.ontology if metadata.domain else None
+            ontology_value = ontology.value if ontology else ""
+            synonyms = ", ".join(ontology.synonyms) if ontology and ontology.synonyms else ""
+            iri = ontology.base_uri if ontology else ""
+
+            rows.append(
+                ft.DataRow(
+                    cells=[
+                        self._build_cell(metadata.code, "code"),
+                        self._build_cell(metadata.subdomain, "subdomain"),
+                        self._build_cell(metadata.cell_value, "value"),
+                        self._build_cell(ontology_value, "ontology"),
+                        self._build_cell(synonyms, "synonyms"),
+                        self._build_cell(iri, "iri"),
+                    ]
+                )
+            )
+
+        self.dt_metadata.rows = rows
         self.update_page()
 
     @property
@@ -95,3 +141,22 @@ class ViewOntology(ft.Control):
 
     def update_page(self):
         self._page.update()
+
+    def _build_column(self, title: str, column_key: str) -> ft.DataColumn:
+        width = self.COLUMN_WIDTHS.get(column_key)
+        label_control: ft.Control = ft.Text(title)
+        if width:
+            label_control = ft.Container(width=width, content=ft.Text(title, weight=ft.FontWeight.BOLD))
+        return ft.DataColumn(label_control)
+
+    def _build_cell(self, value: str, column_key: str) -> ft.DataCell:
+        width = self.COLUMN_WIDTHS.get(column_key)
+        content = ft.Text(
+            value or "",
+            selectable=True,
+            max_lines=None,
+            overflow=ft.TextOverflow.VISIBLE,
+        )
+        if width:
+            content = ft.Container(width=width, content=content)
+        return ft.DataCell(content)

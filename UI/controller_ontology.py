@@ -27,12 +27,12 @@ class ControllerOntology:
             return
 
         try:
-            metadata = self._model.read_metadata_fields(file_path)
+            metadata_container = self._model.read_metadata_fields(file_path)
         except (ValueError, FileNotFoundError) as exc:
             self._view.create_alert(str(exc))
             return
 
-        #self._view.display_metadata(file_path, metadata)
+        self._view.update_metadata_table(metadata_container)
 
     def lookup_term(self, e):
         """BioPortal lookups from the UI."""
