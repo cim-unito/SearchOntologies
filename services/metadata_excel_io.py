@@ -10,36 +10,36 @@ class MetadataExcelIO:
     """Handle reading and writing metadata values from/to Excel files."""
 
     def read_metadata_values(
-            self, metadata: MetadataContainer, file_path: Path
+            self, metadata_container: MetadataContainer, file_path: Path
     ) -> MetadataContainer | None:
         """Populate metadata `values fields using the given Excel file."""
         workbook: Workbook = load_workbook(file_path,
                                            read_only=True,
                                            data_only=True)
-        missing_codes = list(set(metadata.codes()))
+        missing_codes = list(set(metadata_container.codes()))
 
         try:
             try:
-                sheet = workbook[metadata.sheet_name]
+                sheet = workbook[metadata_container.sheet_name]
             except KeyError:
                 print(
-                    f"Sheet '{metadata.sheet_name}' not found in"
+                    f"Sheet '{metadata_container.sheet_name}' not found in"
                     f" '{file_path}'. Available sheets:"
                     f" {', '.join(workbook.sheetnames)}"
                 )
-                return metadata
+                return metadata_container
 
-            target_column = metadata.column_index
+            target_column = metadata_container.column_index
             if target_column < 1:
                 print(
                     f"column_index must be a positive integer;"
                     f" got {target_column}"
                 )
-                return metadata
+                return metadata_container
 
             for code in missing_codes:
-                definition = metadata.get_definition(code)
-                if definition is None:
+                metadata = metadata_container.get_metadata(code)
+                if metadata is None:
                     continue
 
                 try:
@@ -47,29 +47,29 @@ class MetadataExcelIO:
                 except ValueError:
                     print(
                         f"Invalid cell coordinate '{code}' for metadata"
-                        f" '{definition.cell_name}'"
+                        f" '{metadata.cell_name}'"
                     )
                     continue
 
                 label = self._normalize(cell.value)
-                expected_label = self._normalize(definition.cell_name)
+                expected_label = self._normalize(metadata.cell_name)
                 if label is None:
                     continue
                 if expected_label is None or label != expected_label:
                     print(
                         f"Cell {code} in sheet '{sheet.title}' does not"
                         f" match expected name. Expected"
-                        f" '{definition.cell_name}', found '{cell.value}'"
+                        f" '{metadata.cell_name}', found '{cell.value}'"
                     )
                     continue
 
                 value_cell = sheet.cell(row=cell.row, column=target_column)
                 value = self._stringify(value_cell.value)
-                metadata.set_value(code, value)
+                metadata_container.set_value(code, value)
         finally:
             workbook.close()
 
-        return metadata
+        return metadata_container
 
     def write_metadata_values(self):
         pass

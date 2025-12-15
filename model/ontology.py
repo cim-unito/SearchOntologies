@@ -8,3 +8,5 @@ class Ontology:
     base_uri: str = ""
     synonyms: list[str] = field(default_factory=list)
 
+    def get_id(self) -> str:
+        return self.id

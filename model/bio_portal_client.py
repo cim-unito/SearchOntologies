@@ -76,7 +76,7 @@ class BioPortalClient:
                 "Invalid BioPortal response (JSON expected)") from exc
 
         items = payload.get("collection", [])
-        best_item = self._select_best_item(items)
+        best_item = self._select_best_item(term, items)
         if not best_item:
             return None
 
@@ -96,19 +96,53 @@ class BioPortalClient:
         return (ontology or "").strip().upper()
 
     @staticmethod
-    def _select_best_item(items: list[dict]) -> dict | None:
-        """Pick the highest-scoring result returned by BioPortal."""
+    def _select_best_item(term: str, items: list[dict]) -> dict | None:
+        """Pick the most relevant result returned by BioPortal.
+
+        The original implementation relied solely on the numeric ``score``
+        returned by BioPortal. This version keeps that as the baseline but
+        strongly prioritizes exact matches on ``prefLabel``, ``synonym`` and
+        ``notation`` so that the "best" item reflects label quality as well as
+        BioPortal's relevance score.
+        """
 
         if not isinstance(items, list) or not items:
             return None
 
-        def score(item: dict) -> float:
-            try:
-                return float(item.get("score", 0))
-            except (TypeError, ValueError):
-                return 0.0
+        normalized_term = BioPortalClient._normalize_text(term)
 
-        return max(items, key=score)
+        def weighting(item: dict) -> tuple[int, int, int, float, str]:
+            try:
+                base_score = float(item.get("score", 0))
+            except (TypeError, ValueError):
+                base_score = 0.0
+
+            pref_label = BioPortalClient._normalize_text(item.get("prefLabel"))
+            synonyms = {
+                BioPortalClient._normalize_text(s)
+                for s in (item.get("synonym") or item.get("synonyms") or [])
+                if BioPortalClient._normalize_text(s)
+            }
+            notation = BioPortalClient._normalize_text(item.get("notation"))
+
+            pref_match = 1 if pref_label and pref_label == normalized_term else 0
+            synonym_match = 1 if normalized_term in synonyms else 0
+            notation_match = 1 if notation and notation == normalized_term else 0
+
+            return (
+                pref_match,
+                synonym_match,
+                notation_match,
+                base_score,
+                pref_label or "",
+            )
+
+        return max(items, key=weighting)
+
+    @staticmethod
+    def _normalize_text(value: str | None) -> str:
+        """Lowercase/trim a text value for comparisons."""
+        return value.strip().casefold() if isinstance(value, str) else ""
 
     @staticmethod
     def _best_identifier(item) -> str | None:

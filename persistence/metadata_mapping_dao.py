@@ -24,7 +24,7 @@ class MetadataMappingDao:
         domains = {name.casefold(): domain for name, domain in
                    domain_lookup.items()}
 
-        definitions = {}
+        cells = {}
         raw_cells = raw.get("cells")
         if not isinstance(raw_cells, dict):
             raise JsonFormatError("Field 'cells' must be an object mapping")
@@ -40,7 +40,7 @@ class MetadataMappingDao:
                     f"Unknown domain '{domain_name}'"
                 )
 
-            definitions[code] = Metadata(
+            cells[code] = Metadata(
                 code=code,
                 cell_name=cell_name,
                 domain=domain,
@@ -50,7 +50,7 @@ class MetadataMappingDao:
         return MetadataContainer(
             sheet_name=raw["sheet_name"],
             column_index=raw["column_index"],
-            definitions=definitions
+            cells=cells
         )
 
     @classmethod

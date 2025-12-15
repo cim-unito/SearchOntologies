@@ -22,7 +22,7 @@ class ModelOntology:
         }
         self._bioportal = BioPortalClient(
             api_key=api_key, allowed_ontologies=allowed_ontologies)
-        self._metadata = MetadataMappingDao.load_metadata_mapping(
+        self._metadata_container = MetadataMappingDao.load_metadata_mapping(
             self._domains)
         self._metadata_excel_io = metadata_excel_io or MetadataExcelIO()
 
@@ -33,22 +33,26 @@ class ModelOntology:
     def read_metadata_fields(self, file_path: str):
         """Populate metadata values by reading the provided Excel file."""
         file_path = Path(file_path)
-        return self._metadata_excel_io.read_metadata_values(self._metadata,
-                                                            file_path)
+        return self._metadata_excel_io.read_metadata_values(self._metadata_container,
+            file_path)
 
     def search_ontology_from_metadata(self):
         """
         Use BioPortal to populate ontology details for each metadata term.
         """
 
-        for definition, cell_value in self._metadata:
-            domain = definition.domain
+        metadata_dict = self._metadata_container.get_cells()
+        for code, meta in metadata_dict.items():
+            domain = meta.get_domain()
+            cell_value = meta.get_cell_value()
 
-            if cell_value is None or domain is None or domain.ontology is None:
+            if cell_value == "" or domain is None or domain.ontology is None:
                 continue
 
             term = cell_value.upper()
-            ontology_id = domain.ontology.id.upper()
+            ontology = domain.get_ontology()
+            ontology_id = ontology.get_id()
+            ontology_id = ontology_id.upper()
             result = self._bioportal.search_ontology(term=term,
                                                      ontology=ontology_id)
             if result is None:
@@ -63,4 +67,4 @@ class ModelOntology:
                 synonyms=result.get("synonyms", []),
             )
 
-        return self._metadata
+        return self._metadata_container
