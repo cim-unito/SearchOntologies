@@ -1,5 +1,6 @@
+import re
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Tuple
 
 from model.domain import Domain
 from model.metadata import Metadata
@@ -14,6 +15,22 @@ class MetadataContainer:
     def get_cells(self) -> Dict[str, Metadata]:
         """Return the metadata mapping keyed by code."""
         return self.cells
+
+    def get_cells_sorted(self) -> Dict[str, Metadata]:
+        """Return the metadata mapping ordered by Excel cell reference."""
+
+        def cell_sort_key(cell: str) -> Tuple[int, int]:
+            match = re.match(r"([A-Za-z]+)(\d+)$", cell)
+            if not match:
+                return (float("inf"), float("inf"))
+
+            column_part, row_part = match.groups()
+            column_number = 0
+            for char in column_part.upper():
+                column_number = column_number * 26 + (ord(char) - ord("A") + 1)
+            return column_number, int(row_part)
+
+        return {code: metadata for code, metadata in sorted(self.cells.items(), key=lambda item: cell_sort_key(item[0]))}
 
     def get_metadata(self, code: str) -> Metadata | None:
         """Return the metadata entry for ``code`` if present."""

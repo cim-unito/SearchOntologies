@@ -1,7 +1,5 @@
 import flet as ft
 
-from model.metadata_container import MetadataContainer
-
 
 class ViewOntology(ft.Control):
     COLUMN_WIDTHS = {
@@ -90,33 +88,22 @@ class ViewOntology(ft.Control):
         else:
             self.create_alert("No file selected!")
 
-    def update_metadata_table(self, metadata_container: MetadataContainer):
-        """Populate the metadata table with code, subdomain and value."""
-        rows = []
-        for code in sorted(metadata_container.get_cells().keys(), key=str.lower):
-            metadata = metadata_container.get_metadata(code)
-            if metadata is None:
-                continue
-
-            ontology = metadata.domain.ontology if metadata.domain else None
-            ontology_value = ontology.value if ontology else ""
-            synonyms = ", ".join(ontology.synonyms) if ontology and ontology.synonyms else ""
-            iri = ontology.base_uri if ontology else ""
-
-            rows.append(
-                ft.DataRow(
-                    cells=[
-                        self._build_cell(metadata.code, "code"),
-                        self._build_cell(metadata.subdomain, "subdomain"),
-                        self._build_cell(metadata.cell_value, "value"),
-                        self._build_cell(ontology_value, "ontology"),
-                        self._build_cell(synonyms, "synonyms"),
-                        self._build_cell(iri, "iri"),
-                    ]
-                )
+    def update_metadata_table(self, metadata_rows: list[dict]):
+        """Populate the metadata table with pre-serialized rows."""
+        self.dt_metadata.rows = [
+            ft.DataRow(
+                cells=[
+                    self._build_cell(row.get("code", ""), "code"),
+                    self._build_cell(row.get("subdomain", ""), "subdomain"),
+                    self._build_cell(row.get("value", ""), "value"),
+                    self._build_cell(row.get("ontology", ""), "ontology"),
+                    self._build_cell(row.get("synonyms", ""), "synonyms"),
+                    self._build_cell(row.get("iri", ""), "iri"),
+                ]
             )
 
-        self.dt_metadata.rows = rows
+            for row in metadata_rows
+        ]
         self.update_page()
 
     @property

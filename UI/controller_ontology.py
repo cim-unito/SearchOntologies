@@ -32,12 +32,33 @@ class ControllerOntology:
             self._view.create_alert(str(exc))
             return
 
-        self._view.update_metadata_table(metadata_container)
+        self._view.update_metadata_table(
+            self._build_metadata_rows(metadata_container))
 
     def lookup_term(self, e):
         """BioPortal lookups from the UI."""
         try:
-            self._model.search_ontology_from_metadata()
+            metadata_container = self._model.search_ontology_from_metadata()
         except (ValueError, ConfigError) as exc:
             self._view.create_alert(str(exc))
             return None
+
+    def _build_metadata_rows(self, metadata_container):
+        rows = []
+        metadata_container_sorted = metadata_container.get_cells_sorted()
+        for code in metadata_container_sorted.keys():
+            metadata = metadata_container.get_metadata(code)
+            if metadata is None:
+                continue
+
+            ontology = metadata.domain.ontology if metadata.domain else None
+            rows.append({
+                "code": metadata.code,
+                "subdomain": metadata.subdomain,
+                "value": metadata.cell_value,
+                "ontology": ontology.value if ontology else "",
+                "synonyms": ", ".join(ontology.synonyms) if ontology and ontology.synonyms else "",
+                "iri": ontology.base_uri if ontology else "",
+            })
+
+        return rows
