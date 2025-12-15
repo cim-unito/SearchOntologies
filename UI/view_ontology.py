@@ -3,12 +3,12 @@ import flet as ft
 
 class ViewOntology(ft.Control):
     COLUMN_WIDTHS = {
-        "code": 130,
-        "subdomain": 140,
-        "value": 220,
-        "ontology": 150,
-        "synonyms": 200,
-        "iri": 220,
+        "code": 80,
+        "subdomain": 80,
+        "value": 80,
+        "ontology": 80,
+        "synonyms": 80,
+        "iri": 320,
     }
 
     def __init__(self, page: ft.Page):
@@ -138,12 +138,26 @@ class ViewOntology(ft.Control):
 
     def _build_cell(self, value: str, column_key: str) -> ft.DataCell:
         width = self.COLUMN_WIDTHS.get(column_key)
-        content = ft.Text(
-            value or "",
-            selectable=True,
-            max_lines=None,
-            overflow=ft.TextOverflow.VISIBLE,
-        )
+
+        if column_key == "iri" and value:
+            content: ft.Control = ft.TextButton(
+                text=value,
+                url=value,
+                on_click=lambda _, url=value: self._page.launch_url(url),
+                style=ft.ButtonStyle(
+                    padding=0,
+                    overlay_color=ft.Colors.TRANSPARENT,
+                    color=ft.Colors.BLUE_200,
+                ),
+                tooltip="Apri l'IRI",  # esplicita l'azione come un link
+            )
+        else:
+            content = ft.Text(
+                value or "",
+                selectable=True,
+                max_lines=None,
+                overflow=ft.TextOverflow.VISIBLE,
+            )
         if width:
             content = ft.Container(width=width, content=content)
         return ft.DataCell(content)
