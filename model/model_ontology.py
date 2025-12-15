@@ -6,6 +6,7 @@ from persistence.domain_ontology_dao import DomainOntologyDao
 from persistence.metadata_mapping_dao import MetadataMappingDao
 from services.metadata_excel_io import MetadataExcelIO
 
+
 class ModelOntology:
     """
     Instantiate the BioPortal client here so all controllers/views depend on a
@@ -33,7 +34,8 @@ class ModelOntology:
     def read_metadata_fields(self, file_path: str):
         """Populate metadata values by reading the provided Excel file."""
         file_path = Path(file_path)
-        return self._metadata_excel_io.read_metadata_values(self._metadata_container,
+        return self._metadata_excel_io.read_metadata_values(
+            self._metadata_container,
             file_path)
 
     def search_ontology_from_metadata(self):

@@ -82,6 +82,6 @@ class MetadataExcelIO:
 
     def _stringify(self, value: object) -> str | None:
         if value is None:
-            return None
+            return ""
         text = str(value).strip()
-        return text.casefold() if text else None
+        return text.casefold() if text else ""
