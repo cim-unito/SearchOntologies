@@ -53,8 +53,7 @@ class ModelOntology:
 
             term = cell_value.upper()
             ontology = domain.get_ontology()
-            ontology_id = ontology.get_id()
-            ontology_id = ontology_id.upper()
+            ontology_id = ontology.id.upper()
             result = self._bioportal.search_ontology(term=term,
                                                      ontology=ontology_id)
             if result is None:
