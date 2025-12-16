@@ -16,13 +16,8 @@ class ModelOntology:
     def __init__(self, api_key=None,
                  metadata_excel_io: MetadataExcelIO | None = None):
         self._domains = DomainOntologyDao.load_domain_ontologies()
-        allowed_ontologies = {
-            domain.ontology.id.upper()
-            for domain in self._domains.values()
-            if domain.ontology and domain.ontology.id
-        }
         self._bioportal = BioPortalClient(
-            api_key=api_key, allowed_ontologies=allowed_ontologies)
+            api_key=api_key)
         self._metadata_container = MetadataMappingDao.load_metadata_mapping(
             self._domains)
         self._metadata_excel_io = metadata_excel_io or MetadataExcelIO()
@@ -47,22 +42,22 @@ class ModelOntology:
             domain = meta.get_domain()
             cell_value = meta.get_cell_value()
 
-            if cell_value == "" or domain is None or domain.ontology is None:
+            if not cell_value or not domain or not domain.ontology:
                 continue
 
-            term = cell_value.upper()
-            ontology = domain.get_ontology()
-            ontology_id = ontology.id.upper()
-            result = self._bioportal.search_ontology(term=term,
-                                                     ontology=ontology_id)
+            ontology_id = meta.get_ontology_id()
+            if not ontology_id:
+                continue
+
+            result = self._bioportal.search_ontology(cell_value=cell_value,
+                                                     ontology_id=ontology_id)
             if result is None:
                 domain.ontology = Ontology(id=ontology_id)
                 continue
 
             domain.ontology = Ontology(
                 id=ontology_id,
-                value=result.get("notation", "") or result.get("identifier",
-                                                               ""),
+                value=result.get("notation", ""),
                 base_uri=result.get("purl", ""),
                 synonyms=result.get("synonyms", []),
             )

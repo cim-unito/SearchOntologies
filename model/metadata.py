@@ -19,3 +19,7 @@ class Metadata:
     def get_cell_value(self) -> str:
         """Return the stored value for this metadata entry."""
         return self.cell_value
+
+    def get_ontology_id(self) -> str:
+        """Return the ontology id."""
+        return self.domain.ontology.id

@@ -3,11 +3,11 @@ import flet as ft
 
 class ViewOntology(ft.Control):
     COLUMN_WIDTHS = {
-        "code": 80,
-        "subdomain": 80,
-        "value": 80,
-        "ontology": 80,
-        "synonyms": 80,
+        "code": 100,
+        "subdomain": 140,
+        "value": 180,
+        "ontology": 140,
+        "synonyms": 200,
         "iri": 320,
     }
 
@@ -15,81 +15,202 @@ class ViewOntology(ft.Control):
         super().__init__()
         # page
         self._page = page
-        self._page.title = "FoundingGIDE Ontology "
-        self._page.horizontal_alignment = 'CENTER'
-        self._page.theme_mode = ft.ThemeMode.DARK
+        self._page.title = "FoundingGIDE Ontology"
+        self._page.horizontal_alignment = "CENTER"
         self._page.scroll = ft.ScrollMode.AUTO
+
         # controller (it is not initialized. Must be initialized in the main,
         # after the controller is created)
         self._controller = None
+
         # graphical elements
         self._title = None
         self.btn_select_file = None
         self.file_picker = None
         self.dt_metadata = None
         self.btn_search = None
+        self.records_chip = None
+        self.empty_state = None
 
     def load_interface(self):
+        self._configure_page()
+
         # title
-        self._title = ft.Text("FoundingGIDE", color="blue", size=24)
-        self._page.controls.append(self._title)
+        self._title = ft.Column(
+            [
+                ft.Text("FoundingGIDE", size=28, weight=ft.FontWeight.W_700),
+                ft.Text(
+                    "Gestisci e consulta le ontologie con una tabella moderna e chiara.",
+                    size=14,
+                    color=ft.Colors.ON_SURFACE_VARIANT,
+                ),
+            ],
+            spacing=4,
+        )
 
         # button select the metadata excel file
         self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
         self._page.overlay.append(self.file_picker)
-        self.btn_select_file = ft.ElevatedButton(
-            text="Select the metadata excel file",
-            icon=ft.Icons.FOLDER_OPEN,
+        self.btn_select_file = ft.FilledButton(
+            text="Seleziona file Excel dei metadata",
+            icon=ft.Icons.UPLOAD_FILE,
             on_click=lambda _: self.file_picker.pick_files(
                 allow_multiple=False,
-                allowed_extensions=["xlsx"]
-            )
+                allowed_extensions=["xlsx"],
+            ),
         )
-        self._page.controls.append(self.btn_select_file)
 
         # metadata table
         self.dt_metadata = ft.DataTable(
             columns=[
-                self._build_column("Code", "code"),
-                self._build_column("Subdomain", "subdomain"),
-                self._build_column("Value", "value"),
-                self._build_column("Ontology", "ontology"),
-                self._build_column("Synonyms", "synonyms"),
+                self._build_column("Codice", "code"),
+                self._build_column("Sottodominio", "subdomain"),
+                self._build_column("Valore", "value"),
+                self._build_column("Ontologia", "ontology"),
+                self._build_column("Sinonimi", "synonyms"),
                 self._build_column("IRI", "iri"),
             ],
             rows=[],
-            data_row_min_height=44,
+            data_row_min_height=52,
             data_row_max_height=240,
+            heading_row_color=ft.Colors.ON_SURFACE_VARIANT,
+            divider_thickness=0.8,
         )
-        table_width = sum(self.COLUMN_WIDTHS.values()) + 40
+        self.dt_metadata.visible = False
+
+        table_width = sum(self.COLUMN_WIDTHS.values()) + 80
+        self.records_chip = ft.Chip(
+            label=ft.Text("0 elementi"),
+            leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
+            bgcolor=ft.Colors.PRIMARY_CONTAINER,
+            shape=ft.StadiumBorder(),
+        )
+        self.empty_state = ft.Column(
+            [
+                ft.Icon(ft.Icons.TABLE_VIEW, size=56, color=ft.Colors.PRIMARY),
+                ft.Text(
+                    "Carica un file Excel per vedere i metadata organizzati nella tabella.",
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            visible=True,
+        )
+
+        table_card = ft.Card(
+            elevation=2,
+            content=ft.Container(
+                padding=16,
+                width=table_width,
+                content=ft.Column(
+                    [
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Metadata", size=18, weight=ft.FontWeight.W_600
+                                ),
+                                self.records_chip,
+                                ft.Container(expand=True),
+                                self._build_search_button(),
+                            ],
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        ft.Divider(height=12, thickness=1, color=ft.Colors.OUTLINE_VARIANT),
+                        ft.Container(
+                            bgcolor=ft.Colors.SURFACE,
+                            border_radius=12,
+                            padding=8,
+                            content=ft.Column(
+                                [
+                                    self.dt_metadata,
+                                    self.empty_state,
+                                ],
+                                scroll=ft.ScrollMode.AUTO,
+                                expand=True,
+                            ),
+                        ),
+                    ],
+                    spacing=12,
+                ),
+            ),
+        )
+
+        controls_layout = ft.Column(
+            [
+                self._title,
+                ft.Row(
+                    [
+                        self.btn_select_file,
+                        ft.Text(
+                            "Accetta file .xlsx con colonne codice, dominio e valore.",
+                            color=ft.Colors.ON_SURFACE_VARIANT,
+                        ),
+                    ],
+                    spacing=16,
+                    alignment=ft.MainAxisAlignment.START,
+                ),
+                table_card,
+            ],
+            spacing=20,
+            width=table_width,
+        )
+
         self._page.controls.append(
             ft.Container(
-                width=table_width,
+                padding=20,
                 expand=True,
-                content=ft.Column([
-                    self.dt_metadata
-                ], scroll=ft.ScrollMode.AUTO)
+                content=ft.Column(
+                    [controls_layout],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
             )
         )
 
         # button select the metadata excel file
-        self.btn_search = ft.ElevatedButton(
-            text="Search",
-            icon=ft.Icons.SEARCH,
-            on_click=self._controller.lookup_term
-        )
-        self._page.controls.append(self.btn_search)
-
         self._page.update()
+
+    def _configure_page(self):
+        self._page.theme_mode = ft.ThemeMode.LIGHT
+        self._page.padding = 20
+        self._page.bgcolor = ft.Colors.SURFACE_TINT
+        self._page.theme = ft.Theme(
+            color_scheme_seed=ft.Colors.BLUE,
+            use_material3=True,
+        )
+        self._page.appbar = ft.AppBar(
+            title=ft.Text("FoundingGIDE Ontology"),
+            center_title=False,
+            bgcolor=ft.Colors.SURFACE,
+            actions=[
+                ft.IconButton(
+                    icon=ft.Icons.HELP_OUTLINE,
+                    tooltip="Seleziona un file Excel e avvia la ricerca",
+                )
+            ],
+        )
+
+    def _build_search_button(self) -> ft.Control:
+        if not self.btn_search:
+            self.btn_search = ft.FilledTonalButton(
+                text="Cerca negli ontologi",
+                icon=ft.Icons.SEARCH,
+                on_click=self._controller.lookup_term,
+                tooltip="Esegue la ricerca delle ontologie sui metadata caricati",
+            )
+        return self.btn_search
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         if e.files:
+            self.empty_state.visible = False
+            self.dt_metadata.visible = True
             self._controller.get_metadata_excel_file(e.files)
         else:
             self.create_alert("No file selected!")
 
     def update_metadata_table(self, metadata_rows: list[dict]):
         """Populate the metadata table with pre-serialized rows."""
+        has_rows = bool(metadata_rows)
         self.dt_metadata.rows = [
             ft.DataRow(
                 cells=[
@@ -104,6 +225,9 @@ class ViewOntology(ft.Control):
 
             for row in metadata_rows
         ]
+        self.records_chip.label = ft.Text(f"{len(metadata_rows)} elementi")
+        self.dt_metadata.visible = has_rows
+        self.empty_state.visible = not has_rows
         self.update_page()
 
     @property
@@ -133,7 +257,10 @@ class ViewOntology(ft.Control):
         width = self.COLUMN_WIDTHS.get(column_key)
         label_control: ft.Control = ft.Text(title)
         if width:
-            label_control = ft.Container(width=width, content=ft.Text(title, weight=ft.FontWeight.BOLD))
+            label_control = ft.Container(
+                width=width,
+                content=ft.Text(title, weight=ft.FontWeight.BOLD),
+            )
         return ft.DataColumn(label_control)
 
     def _build_cell(self, value: str, column_key: str) -> ft.DataCell:
@@ -147,7 +274,7 @@ class ViewOntology(ft.Control):
                 style=ft.ButtonStyle(
                     padding=0,
                     overlay_color=ft.Colors.TRANSPARENT,
-                    color=ft.Colors.BLUE_200,
+                    color=ft.Colors.BLUE,
                 ),
                 tooltip="Apri l'IRI",  # esplicita l'azione come un link
             )
@@ -155,8 +282,8 @@ class ViewOntology(ft.Control):
             content = ft.Text(
                 value or "",
                 selectable=True,
-                max_lines=None,
-                overflow=ft.TextOverflow.VISIBLE,
+                max_lines=3,
+                overflow=ft.TextOverflow.ELLIPSIS,
             )
         if width:
             content = ft.Container(width=width, content=content)

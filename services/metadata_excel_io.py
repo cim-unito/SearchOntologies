@@ -84,4 +84,4 @@ class MetadataExcelIO:
         if value is None:
             return ""
         text = str(value).strip()
-        return text.casefold() if text else ""
+        return text if text else ""

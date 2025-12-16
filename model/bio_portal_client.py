@@ -19,23 +19,19 @@ class BioPortalClient:
     def __init__(
             self, api_key: str | None = None,
             session: requests.Session | None = None,
-            allowed_ontologies: set[str] | None = None,
     ):
         self._api_key = (api_key or Config.api_key()).strip()
         if not self._api_key:
             raise ConfigError("BioPortal API key is missing or empty")
 
-        self._allowed_ontologies = (
-            {self._normalize_ontology_id(o) for o in allowed_ontologies}
-            if allowed_ontologies else None
-        )
         self._session = session or requests.Session()
 
     @property
     def api_key(self) -> str:
         return self._api_key
 
-    def search_ontology(self, term: str, ontology: str) -> dict | None:
+    def search_ontology(self, cell_value: str,
+                        ontology_id: str) -> dict | None:
         """
         Search a single ontology and return details of the best match.
 
@@ -44,14 +40,12 @@ class BioPortalClient:
         and ``synonyms`` (list of strings).
         """
 
-        ontology_code = self._normalize_ontology_id(ontology)
-        if self._allowed_ontologies is not None and ontology_code not in self._allowed_ontologies:
-            raise BioPortalError(
-                f"Ontology '{ontology}' is not declared in the allowed list")
+        ontology = self._normalize_ontology_id(ontology_id)
+        term = self._normalize_term_value(cell_value)
 
         params = {
-            "q": term.strip(),
-            "ontologies": ontology_code,
+            "q": term,
+            "ontologies": ontology,
             "apikey": self._api_key,
         }
 
@@ -76,7 +70,7 @@ class BioPortalClient:
                 "Invalid BioPortal response (JSON expected)") from exc
 
         items = payload.get("collection", [])
-        best_item = self._select_best_item(term, items)
+        best_item = self._select_best_item(items)
         if not best_item:
             return None
 
@@ -85,70 +79,40 @@ class BioPortalClient:
         return {
             "identifier": identifier,
             "notation": self._best_notation(best_item, identifier),
-            "purl": self._extract_purl(best_item, identifier),
+            "purl": self._extract_purl(identifier),
             "synonyms": self._extract_synonyms(best_item),
         }
 
     @staticmethod
     def _normalize_ontology_id(ontology: str | None) -> str:
         """Normalize ontology identifiers for consistent comparisons."""
-
         return (ontology or "").strip().upper()
 
     @staticmethod
-    def _select_best_item(term: str, items: list[dict]) -> dict | None:
-        """Pick the most relevant result returned by BioPortal.
+    def _normalize_term_value(term: str | None) -> str:
+        """Normalize terms for consistent comparisons."""
+        return (term or "").strip()
 
-        The original implementation relied solely on the numeric ``score``
-        returned by BioPortal. This version keeps that as the baseline but
-        strongly prioritizes exact matches on ``prefLabel``, ``synonym`` and
-        ``notation`` so that the "best" item reflects label quality as well as
-        BioPortal's relevance score.
-        """
+    @staticmethod
+    def _normalize_iri(value: str | None) -> str | None:
+        """Normalize iri for consistent comparisons."""
+        if not isinstance(value, str):
+            return None
+        value = value.strip()
+        return value or None
 
+    @staticmethod
+    def _select_best_item(items: list[dict]) -> dict | None:
+        """Pick the most relevant result returned by BioPortal."""
         if not isinstance(items, list) or not items:
             return None
 
-        normalized_term = BioPortalClient._normalize_text(term)
-
-        def weighting(item: dict) -> tuple[int, int, int, float, str]:
-            try:
-                base_score = float(item.get("score", 0))
-            except (TypeError, ValueError):
-                base_score = 0.0
-
-            pref_label = BioPortalClient._normalize_text(item.get("prefLabel"))
-            synonyms = {
-                BioPortalClient._normalize_text(s)
-                for s in (item.get("synonym") or item.get("synonyms") or [])
-                if BioPortalClient._normalize_text(s)
-            }
-            notation = BioPortalClient._normalize_text(item.get("notation"))
-
-            pref_match = 1 if pref_label and pref_label == normalized_term else 0
-            synonym_match = 1 if normalized_term in synonyms else 0
-            notation_match = 1 if notation and notation == normalized_term else 0
-
-            return (
-                pref_match,
-                synonym_match,
-                notation_match,
-                base_score,
-                pref_label or "",
-            )
-
-        return max(items, key=weighting)
-
-    @staticmethod
-    def _normalize_text(value: str | None) -> str:
-        """Lowercase/trim a text value for comparisons."""
-        return value.strip().casefold() if isinstance(value, str) else ""
+        return items[0]
 
     @staticmethod
     def _best_identifier(item) -> str | None:
-        """Return the best identifier from a BioPortal result."""
-
-        for key in ("obo_id", "notation", "@id"):
+        """Return the identifier from a BioPortal result."""
+        for key in ("@id",):
             candidate = item.get(key)
             if candidate:
                 return str(candidate)
@@ -156,112 +120,92 @@ class BioPortalClient:
 
     @staticmethod
     def _best_notation(item: dict, identifier: str | None) -> str:
-        """Extract a compact notation (e.g., ``162`` from ``DOID:162``)."""
-
-        notation = item.get("notation") or item.get("obo_id")
-        if isinstance(notation, str) and notation:
-            if ":" in notation:
-                return notation.split(":", maxsplit=1)[-1]
-            return notation
-
+        """Extract a compact notation (e.g., ``162`` from ``DOID_162``)."""
         if identifier and "_" in identifier:
             return identifier.rsplit("_", maxsplit=1)[-1]
 
-        if identifier and "/" in identifier:
-            return identifier.rstrip("/").rsplit("/", maxsplit=1)[-1]
+        if identifier and "#" in identifier:
+            return identifier.rsplit("#", maxsplit=1)[-1]
 
         return ""
 
     @staticmethod
-    def _extract_purl(item: dict, identifier: str | None) -> str:
-        """
-        Derive a canonical PURL for the result.
+    def _extract_purl(identifier: str | None) -> str:
+        """Derive a canonical PURL for the result."""
+        iri = identifier
 
-        Even when a caller already has an identifier, this helper is still
-        required to normalize CURIEs/IRIs into the OBO PURL form so that the
-        rest of the application can rely on consistent values.
-        """
+        if BioPortalClient._is_purl(iri):
+            return iri
+        if BioPortalClient._is_ncit(iri):
+            return BioPortalClient._ncit_to_purl(iri)
+        if BioPortalClient._is_ebi(iri):
+            return BioPortalClient._ebi_to_purl(iri)
 
-        # Prefer OBO-style PURLs when an ``obo_id``/CURIE is available so that
-        # NCIT, MONDO, DOID, etc. are always returned in the
-        # ``http://purl.obolibrary.org/obo/`` form.
-        for candidate in (item.get("obo_id"), identifier):
-            purl = BioPortalClient._obo_id_to_purl(candidate)
-            if purl:
-                return purl
-
-        iri = item.get("@id") or item.get("links", {}).get("self") or identifier
-
-        ncit_purl = BioPortalClient._ncit_iri_to_purl(iri)
-        if ncit_purl:
-            return ncit_purl
-
-        if iri:
-            return str(iri)
-        return identifier or ""
+        return iri
 
     @staticmethod
-    def _obo_id_to_purl(value: str | None) -> str:
-        """Convert CURIE/obo_id values to an OBO PURL if possible."""
-
-        if not isinstance(value, str):
-            return ""
-
-        trimmed = value.strip()
-        if not trimmed:
-            return ""
-
-        if trimmed.startswith(("http://purl.obolibrary.org/obo/",
-                               "https://purl.obolibrary.org/obo/")):
-            return trimmed
-
-        # Ignore full IRIs such as "http://ncicb.nci.nih.gov/..." to avoid
-        # producing broken PURLs like
-        # ``http://purl.obolibrary.org/obo/http_//ncicb.nci.nih.gov/...``.
-        if "://" in trimmed or "/" in trimmed.split(":", maxsplit=1)[-1]:
-            return ""
-
-        if ":" in trimmed:
-            prefix, local_id = trimmed.split(":", maxsplit=1)
-        elif "_" in trimmed:
-            prefix, local_id = trimmed.split("_", maxsplit=1)
-        else:
-            return ""
-
-        if not prefix or not local_id:
-            return ""
-        return f"http://purl.obolibrary.org/obo/{prefix}_{local_id}"
+    def _is_purl(value: str | None) -> bool:
+        """Check if it is a canonical PURL"""
+        value = BioPortalClient._normalize_iri(value)
+        return bool(value and value.startswith((
+            "http://purl.obolibrary.org/obo/",
+            "https://purl.obolibrary.org/obo/",
+        )))
 
     @staticmethod
-    def _ncit_iri_to_purl(value: str | None) -> str:
-        """Convert common NCIT IRIs to the canonical OBO PURL form.
+    def _is_ncit(value: str | None) -> bool:
+        """Check if it is a canonical NCIT"""
+        value = BioPortalClient._normalize_iri(value)
+        return bool(value and value.startswith((
+            "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+            "https://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+        )))
 
-        BioPortal sometimes returns NCIT results without an ``obo_id``/CURIE,
-        leaving only the NCIT-specific IRI. This helper ensures those cases are
-        still normalized to the standard ``.../obo/NCIT_<id>`` PURL.
-        """
+    @staticmethod
+    def _is_ebi(value: str | None) -> bool:
+        """Check if it is a canonical EBI (SWO, EFO)"""
+        value = BioPortalClient._normalize_iri(value)
+        return bool(value and value.startswith((
+            "http://www.ebi.ac.uk/",
+            "https://www.ebi.ac.uk/",
+        )))
 
-        if not isinstance(value, str):
-            return ""
+    @staticmethod
+    def _ncit_to_purl(iri: str | None) -> str | None:
+        """Convert common NCIT IRIs to the canonical OBO PURL form."""
+        iri = BioPortalClient._normalize_iri(iri)
+        if not iri:
+            return None
 
-        trimmed = value.strip()
-        if not trimmed:
-            return ""
-
-        if trimmed.startswith(
-                ("http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#",
-                 "https://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#")):
-            local_id = trimmed.rsplit("#", maxsplit=1)[-1]
-        elif trimmed.startswith(("http://purl.bioontology.org/ontology/NCIT/",
-                                 "https://purl.bioontology.org/ontology/NCIT/")):
-            local_id = trimmed.rstrip("/").rsplit("/", maxsplit=1)[-1]
-        else:
-            return ""
+        local_id = iri.rsplit("#", 1)[-1].rsplit("/", 1)[-1]
 
         if not local_id:
-            return ""
+            return iri
 
         return f"http://purl.obolibrary.org/obo/NCIT_{local_id}"
+
+    @staticmethod
+    def _ebi_to_purl(iri: str | None) -> str | None:
+        """Convert common EBI IRIs to the canonical OBO PURL form."""
+        iri = BioPortalClient._normalize_iri(iri)
+        if not iri:
+            return None
+
+        iri_lower = iri.lower()
+
+        if "/swo/" in iri_lower:
+            onto = "SWO"
+        elif "/efo/" in iri_lower:
+            onto = "EFO"
+        else:
+            return iri
+
+        local_id = iri.rsplit("_", 1)[-1].rsplit("/", 1)[-1]
+
+        if not local_id:
+            return iri
+
+        return f"http://purl.obolibrary.org/obo/{onto}_{local_id}"
 
     @staticmethod
     def _extract_synonyms(item: dict) -> list[str]:
