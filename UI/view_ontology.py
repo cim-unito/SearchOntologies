@@ -2,6 +2,12 @@ import flet as ft
 
 
 class ViewOntology(ft.Control):
+    PRIMARY_COLOR = "#376966"
+    PRIMARY_CONTAINER_COLOR = "#5A8F8A"
+    SURFACE_COLOR = "#F7FAF9"
+    SURFACE_VARIANT_COLOR = "#E0E7E6"
+    OUTLINE_VARIANT_COLOR = "#C4D2D0"
+
     COLUMN_WIDTHS = {
         "code": 100,
         "subdomain": 140,
@@ -69,7 +75,7 @@ class ViewOntology(ft.Control):
             rows=[],
             data_row_min_height=52,
             data_row_max_height=240,
-            heading_row_color=ft.Colors.ON_SURFACE_VARIANT,
+            heading_row_color=self.SURFACE_VARIANT_COLOR,
             divider_thickness=0.8,
         )
         self.dt_metadata.visible = False
@@ -88,14 +94,14 @@ class ViewOntology(ft.Control):
         self.chip_records = ft.Chip(
             label=ft.Text("0 elements"),
             leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
-            bgcolor=ft.Colors.PRIMARY_CONTAINER,
+            bgcolor=self.PRIMARY_CONTAINER_COLOR,
             shape=ft.StadiumBorder(),
         )
 
         # empty table state
         self.empty_table_state = ft.Column(
             [
-                ft.Icon(ft.Icons.TABLE_VIEW, size=56, color=ft.Colors.PRIMARY),
+                ft.Icon(ft.Icons.TABLE_VIEW, size=56, color=self.PRIMARY_COLOR),
                 ft.Text(
                     "Load an Excel file to see the metadata organized in the table.",
                     text_align=ft.TextAlign.CENTER,
@@ -126,9 +132,9 @@ class ViewOntology(ft.Control):
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
                         ft.Divider(height=12, thickness=1,
-                                   color=ft.Colors.OUTLINE_VARIANT),
+                                   color=self.OUTLINE_VARIANT_COLOR),
                         ft.Container(
-                            bgcolor=ft.Colors.SURFACE,
+                            bgcolor=self.SURFACE_COLOR,
                             border_radius=12,
                             padding=8,
                             content=ft.Column(
@@ -178,15 +184,15 @@ class ViewOntology(ft.Control):
     def _configure_page(self):
         self._page.theme_mode = ft.ThemeMode.LIGHT
         self._page.padding = 20
-        self._page.bgcolor = ft.Colors.SURFACE_TINT
+        self._page.bgcolor = self.PRIMARY_COLOR
         self._page.theme = ft.Theme(
-            color_scheme_seed=ft.Colors.BLUE,
+            color_scheme_seed=self.PRIMARY_COLOR,
             use_material3=True,
         )
         self._page.appbar = ft.AppBar(
             title=ft.Text("FoundingGIDE Ontology"),
             center_title=False,
-            bgcolor=ft.Colors.SURFACE,
+            bgcolor=self.SURFACE_COLOR,
             actions=[
                 ft.IconButton(
                     icon=ft.Icons.HELP_OUTLINE,
@@ -266,7 +272,7 @@ class ViewOntology(ft.Control):
                 icon=ft.Icons.OPEN_IN_NEW,
                 on_click=lambda _, url=value: self._page.launch_url(url),
                 tooltip=value,
-                icon_color=ft.Colors.BLUE,
+                icon_color=self.PRIMARY_COLOR,
                 style=ft.ButtonStyle(
                     padding=0,
                     overlay_color=ft.Colors.TRANSPARENT,
