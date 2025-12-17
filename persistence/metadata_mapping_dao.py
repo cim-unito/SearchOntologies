@@ -3,6 +3,7 @@ from typing import Mapping
 import re
 
 from model.metadata_container import MetadataContainer
+from model.ontology import Ontology
 from persistence.json_reader import JsonReader, JsonFormatError
 from model.domain import Domain
 from model.metadata import Metadata
@@ -39,6 +40,16 @@ class MetadataMappingDao:
                 raise JsonFormatError(
                     f"Unknown domain '{domain_name}'"
                 )
+
+            domain = Domain(
+                id=domain.id,
+                ontology=Ontology(
+                    id=domain.ontology.id,
+                    value=domain.ontology.value,
+                    base_uri=domain.ontology.base_uri,
+                    synonyms=list(domain.ontology.synonyms),
+                ),
+            )
 
             cells[code] = Metadata(
                 code=code,
