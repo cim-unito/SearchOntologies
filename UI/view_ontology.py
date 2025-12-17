@@ -24,19 +24,19 @@ class ViewOntology(ft.Control):
         self._controller = None
 
         # graphical elements
-        self._img_founding_gide = None
+        self.img_founding_gide = None
         self.btn_select_file = None
         self.file_picker = None
         self.dt_metadata = None
         self.btn_search = None
         self.chip_records = None
-        self.empty_state = None
+        self.empty_table_state = None
 
     def load_interface(self):
         self._configure_page()
 
         # logo founding gide
-        self._img_founding_gide = ft.Column(
+        self.img_founding_gide = ft.Column(
             [
                 ft.Image(src="assets/images/foundingGIDE.png", width=260,
                          fit=ft.ImageFit.CONTAIN),
@@ -86,14 +86,14 @@ class ViewOntology(ft.Control):
 
         # chip records
         self.chip_records = ft.Chip(
-            label=ft.Text("0 elementi"),
+            label=ft.Text("0 elements"),
             leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
             bgcolor=ft.Colors.PRIMARY_CONTAINER,
             shape=ft.StadiumBorder(),
         )
 
-        # empty state
-        self.empty_state = ft.Column(
+        # empty table state
+        self.empty_table_state = ft.Column(
             [
                 ft.Icon(ft.Icons.TABLE_VIEW, size=56, color=ft.Colors.PRIMARY),
                 ft.Text(
@@ -134,7 +134,7 @@ class ViewOntology(ft.Control):
                             content=ft.Column(
                                 [
                                     self.dt_metadata,
-                                    self.empty_state,
+                                    self.empty_table_state,
                                 ],
                                 scroll=ft.ScrollMode.AUTO,
                                 expand=True,
@@ -148,7 +148,7 @@ class ViewOntology(ft.Control):
 
         controls_layout = ft.Column(
             [
-                self._img_founding_gide,
+                self.img_founding_gide,
                 ft.Row(
                     [
                         self.btn_select_file,
@@ -197,7 +197,7 @@ class ViewOntology(ft.Control):
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         if e.files:
-            self.empty_state.visible = False
+            self.empty_table_state.visible = False
             self.dt_metadata.visible = True
             self._controller.get_metadata_excel_file(e.files)
         else:
@@ -222,7 +222,7 @@ class ViewOntology(ft.Control):
         ]
         self.chip_records.label = ft.Text(f"{len(metadata_rows)} elementi")
         self.dt_metadata.visible = has_rows
-        self.empty_state.visible = not has_rows
+        self.empty_table_state.visible = not has_rows
         self.update_page()
 
     @property
