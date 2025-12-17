@@ -104,7 +104,7 @@ class BioPortalClient:
     @staticmethod
     def _select_best_item(items: list[dict]) -> dict | None:
         """Pick the most relevant result returned by BioPortal."""
-        if not isinstance(items, list) or not items:
+        if not items:
             return None
 
         return items[0]
@@ -133,6 +133,9 @@ class BioPortalClient:
     def _extract_purl(identifier: str | None) -> str:
         """Derive a canonical PURL for the result."""
         iri = identifier
+
+        if not iri:
+            return ""
 
         if BioPortalClient._is_purl(iri):
             return iri

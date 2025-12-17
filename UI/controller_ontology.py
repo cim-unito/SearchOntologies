@@ -53,11 +53,17 @@ class ControllerOntology:
                 continue
 
             ontology = metadata.domain.ontology if metadata.domain else None
+            ontology_display = ""
+            if ontology:
+                if ontology.value:
+                    ontology_display = f"{ontology.id}: {ontology.value}"
+                else:
+                    ontology_display = ontology.id
             rows.append({
                 "code": metadata.code,
                 "subdomain": metadata.subdomain,
                 "value": metadata.cell_value,
-                "ontology": ontology.value if ontology else "",
+                "ontology": ontology_display,
                 "synonyms": ", ".join(ontology.synonyms) if ontology and ontology.synonyms else "",
                 "iri": ontology.base_uri if ontology else "",
             })

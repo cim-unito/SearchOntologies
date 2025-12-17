@@ -267,16 +267,20 @@ class ViewOntology(ft.Control):
         width = self.COLUMN_WIDTHS.get(column_key)
 
         if column_key == "iri" and value:
-            content: ft.Control = ft.TextButton(
-                text=value,
-                url=value,
+            icon_button = ft.IconButton(
+                icon=ft.Icons.OPEN_IN_NEW,
                 on_click=lambda _, url=value: self._page.launch_url(url),
+                tooltip=value,
+                icon_color=ft.Colors.BLUE,
                 style=ft.ButtonStyle(
                     padding=0,
                     overlay_color=ft.Colors.TRANSPARENT,
-                    color=ft.Colors.BLUE,
                 ),
-                tooltip="Apri l'IRI",  # esplicita l'azione come un link
+            )
+            content = ft.Row(
+                [icon_button],
+                spacing=8,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
         else:
             content = ft.Text(
