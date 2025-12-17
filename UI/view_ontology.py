@@ -24,26 +24,22 @@ class ViewOntology(ft.Control):
         self._controller = None
 
         # graphical elements
-        self._title = None
+        self._img_founding_gide = None
         self.btn_select_file = None
         self.file_picker = None
         self.dt_metadata = None
         self.btn_search = None
-        self.records_chip = None
+        self.chip_records = None
         self.empty_state = None
 
     def load_interface(self):
         self._configure_page()
 
-        # title
-        self._title = ft.Column(
+        # logo founding gide
+        self._img_founding_gide = ft.Column(
             [
-                ft.Text("FoundingGIDE", size=28, weight=ft.FontWeight.W_700),
-                ft.Text(
-                    "Gestisci e consulta le ontologie con una tabella moderna e chiara.",
-                    size=14,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
-                ),
+                ft.Image(src="assets/images/foundingGIDE.png", width=260,
+                         fit=ft.ImageFit.CONTAIN),
             ],
             spacing=4,
         )
@@ -52,7 +48,7 @@ class ViewOntology(ft.Control):
         self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
         self._page.overlay.append(self.file_picker)
         self.btn_select_file = ft.FilledButton(
-            text="Seleziona file Excel dei metadata",
+            text="Select Excel metadata file",
             icon=ft.Icons.UPLOAD_FILE,
             on_click=lambda _: self.file_picker.pick_files(
                 allow_multiple=False,
@@ -63,11 +59,11 @@ class ViewOntology(ft.Control):
         # metadata table
         self.dt_metadata = ft.DataTable(
             columns=[
-                self._build_column("Codice", "code"),
-                self._build_column("Sottodominio", "subdomain"),
-                self._build_column("Valore", "value"),
-                self._build_column("Ontologia", "ontology"),
-                self._build_column("Sinonimi", "synonyms"),
+                self._build_column("Code", "code"),
+                self._build_column("Subdomain", "subdomain"),
+                self._build_column("Value", "value"),
+                self._build_column("Ontology", "ontology"),
+                self._build_column("Synonyms", "synonyms"),
                 self._build_column("IRI", "iri"),
             ],
             rows=[],
@@ -79,17 +75,29 @@ class ViewOntology(ft.Control):
         self.dt_metadata.visible = False
 
         table_width = sum(self.COLUMN_WIDTHS.values()) + 80
-        self.records_chip = ft.Chip(
+
+        # button to search ontologies
+        self.btn_search = ft.FilledTonalButton(
+            text="Search ontologies",
+            icon=ft.Icons.SEARCH,
+            on_click=self._controller.lookup_term,
+            tooltip="Performs ontology searches on uploaded metadata",
+        )
+
+        # chip records
+        self.chip_records = ft.Chip(
             label=ft.Text("0 elementi"),
             leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
             bgcolor=ft.Colors.PRIMARY_CONTAINER,
             shape=ft.StadiumBorder(),
         )
+
+        # empty state
         self.empty_state = ft.Column(
             [
                 ft.Icon(ft.Icons.TABLE_VIEW, size=56, color=ft.Colors.PRIMARY),
                 ft.Text(
-                    "Carica un file Excel per vedere i metadata organizzati nella tabella.",
+                    "Load an Excel file to see the metadata organized in the table.",
                     text_align=ft.TextAlign.CENTER,
                 ),
             ],
@@ -108,15 +116,17 @@ class ViewOntology(ft.Control):
                         ft.Row(
                             [
                                 ft.Text(
-                                    "Metadata", size=18, weight=ft.FontWeight.W_600
+                                    "Metadata", size=18,
+                                    weight=ft.FontWeight.W_600
                                 ),
-                                self.records_chip,
+                                self.chip_records,
                                 ft.Container(expand=True),
-                                self._build_search_button(),
+                                self.btn_search,
                             ],
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
-                        ft.Divider(height=12, thickness=1, color=ft.Colors.OUTLINE_VARIANT),
+                        ft.Divider(height=12, thickness=1,
+                                   color=ft.Colors.OUTLINE_VARIANT),
                         ft.Container(
                             bgcolor=ft.Colors.SURFACE,
                             border_radius=12,
@@ -138,14 +148,10 @@ class ViewOntology(ft.Control):
 
         controls_layout = ft.Column(
             [
-                self._title,
+                self._img_founding_gide,
                 ft.Row(
                     [
                         self.btn_select_file,
-                        ft.Text(
-                            "Accetta file .xlsx con colonne codice, dominio e valore.",
-                            color=ft.Colors.ON_SURFACE_VARIANT,
-                        ),
                     ],
                     spacing=16,
                     alignment=ft.MainAxisAlignment.START,
@@ -167,7 +173,6 @@ class ViewOntology(ft.Control):
             )
         )
 
-        # button select the metadata excel file
         self._page.update()
 
     def _configure_page(self):
@@ -185,20 +190,10 @@ class ViewOntology(ft.Control):
             actions=[
                 ft.IconButton(
                     icon=ft.Icons.HELP_OUTLINE,
-                    tooltip="Seleziona un file Excel e avvia la ricerca",
+                    tooltip="Select an Excel file and start the search",
                 )
             ],
         )
-
-    def _build_search_button(self) -> ft.Control:
-        if not self.btn_search:
-            self.btn_search = ft.FilledTonalButton(
-                text="Cerca negli ontologi",
-                icon=ft.Icons.SEARCH,
-                on_click=self._controller.lookup_term,
-                tooltip="Esegue la ricerca delle ontologie sui metadata caricati",
-            )
-        return self.btn_search
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         if e.files:
@@ -225,7 +220,7 @@ class ViewOntology(ft.Control):
 
             for row in metadata_rows
         ]
-        self.records_chip.label = ft.Text(f"{len(metadata_rows)} elementi")
+        self.chip_records.label = ft.Text(f"{len(metadata_rows)} elementi")
         self.dt_metadata.visible = has_rows
         self.empty_state.visible = not has_rows
         self.update_page()
