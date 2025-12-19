@@ -37,10 +37,31 @@ class ViewOntology(ft.Control):
         self.btn_search = None
         self.chip_records = None
         self.empty_table_state = None
+        self.card_table = None
 
     def load_interface(self):
         self._configure_page()
 
+        self._build_controls()
+
+        self._bind_events()
+
+        controls_layout = self._define_layout()
+
+        self._page.controls.append(
+            ft.Container(
+                padding=20,
+                expand=True,
+                content=ft.Column(
+                    [controls_layout],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            )
+        )
+
+        self._page.update()
+
+    def _build_controls(self):
         # logo founding gide
         self.img_founding_gide = ft.Column(
             [
@@ -51,15 +72,12 @@ class ViewOntology(ft.Control):
         )
 
         # button select the metadata excel file
-        self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
+        self.file_picker = ft.FilePicker()
         self._page.overlay.append(self.file_picker)
         self.btn_select_file = ft.FilledButton(
-            text="Select Excel metadata file",
+            text="Select metadata file",
             icon=ft.Icons.UPLOAD_FILE,
-            on_click=lambda _: self.file_picker.pick_files(
-                allow_multiple=False,
-                allowed_extensions=["xlsx"],
-            ),
+            tooltip="Select the metadata excel file to search for ontologies",
         )
 
         # metadata table
@@ -86,7 +104,6 @@ class ViewOntology(ft.Control):
         self.btn_search = ft.FilledTonalButton(
             text="Search ontologies",
             icon=ft.Icons.SEARCH,
-            on_click=self._controller.lookup_term,
             tooltip="Performs ontology searches on uploaded metadata",
         )
 
@@ -101,7 +118,8 @@ class ViewOntology(ft.Control):
         # empty table state
         self.empty_table_state = ft.Column(
             [
-                ft.Icon(ft.Icons.TABLE_VIEW, size=56, color=self.PRIMARY_COLOR),
+                ft.Icon(ft.Icons.TABLE_VIEW, size=56,
+                        color=self.PRIMARY_COLOR),
                 ft.Text(
                     "Load an Excel file to see the metadata organized in the table.",
                     text_align=ft.TextAlign.CENTER,
@@ -112,7 +130,8 @@ class ViewOntology(ft.Control):
             visible=True,
         )
 
-        table_card = ft.Card(
+        # card for the table
+        self.card_table = ft.Card(
             elevation=2,
             content=ft.Container(
                 padding=16,
@@ -152,6 +171,7 @@ class ViewOntology(ft.Control):
             ),
         )
 
+    def _define_layout(self):
         controls_layout = ft.Column(
             [
                 self.img_founding_gide,
@@ -162,24 +182,12 @@ class ViewOntology(ft.Control):
                     spacing=16,
                     alignment=ft.MainAxisAlignment.START,
                 ),
-                table_card,
+                self.card_table,
             ],
             spacing=20,
-            width=table_width,
         )
 
-        self._page.controls.append(
-            ft.Container(
-                padding=20,
-                expand=True,
-                content=ft.Column(
-                    [controls_layout],
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-            )
-        )
-
-        self._page.update()
+        return controls_layout
 
     def _configure_page(self):
         self._page.theme_mode = ft.ThemeMode.LIGHT
@@ -200,6 +208,16 @@ class ViewOntology(ft.Control):
                 )
             ],
         )
+
+    def _bind_events(self):
+        """Bind events"""
+        self.file_picker.on_result = self.on_file_picked
+        self.btn_select_file.on_click = lambda \
+                _: self.file_picker.pick_files(
+            allow_multiple=False,
+            allowed_extensions=["xlsx"],
+        )
+        self.btn_search.on_click = self._controller.lookup_term
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         if e.files:
