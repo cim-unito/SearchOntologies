@@ -31,21 +31,22 @@ class ViewOntology(ft.Control):
 
         # graphical elements
         self.img_founding_gide = None
-        self.btn_select_file = None
+        self.btn_select_metadata_file = None
         self.file_picker = None
-        self.dt_metadata = None
+        self.tbl_metadata = None
         self.btn_search = None
-        self.chip_records = None
-        self.empty_table_state = None
-        self.card_table = None
+        self.chip_metadata_count = None
+        self.empty_metadata_placeholder = None
+        self.card_metadata_table = None
 
     def load_interface(self):
+        """
+        Initialize page theme, build controls, bind events, and mount the
+        layout to the page.
+        """
         self._configure_page()
-
         self._build_controls()
-
         self._bind_events()
-
         controls_layout = self._define_layout()
 
         self._page.controls.append(
@@ -61,133 +62,51 @@ class ViewOntology(ft.Control):
 
         self._page.update()
 
-    def _build_controls(self):
-        # logo founding gide
-        self.img_founding_gide = ft.Column(
-            [
-                ft.Image(src="assets/images/foundingGIDE.png", width=260,
-                         fit=ft.ImageFit.CONTAIN),
-            ],
-            spacing=4,
-        )
+    def update_metadata_table(self, metadata_rows: list[dict]):
+        """Populate the metadata table."""
+        has_rows = bool(metadata_rows)
+        self.tbl_metadata.rows = [
+            ft.DataRow(
+                cells=[
+                    self._build_cell(row.get("code", ""), "code"),
+                    self._build_cell(row.get("subdomain", ""), "subdomain"),
+                    self._build_cell(row.get("value", ""), "value"),
+                    self._build_cell(row.get("ontology", ""), "ontology"),
+                    self._build_cell(row.get("synonyms", ""), "synonyms"),
+                    self._build_cell(row.get("iri", ""), "iri"),
+                ]
+            )
 
-        # button select the metadata excel file
-        self.file_picker = ft.FilePicker()
-        self._page.overlay.append(self.file_picker)
-        self.btn_select_file = ft.FilledButton(
-            text="Select metadata file",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Select the metadata excel file to search for ontologies",
-        )
+            for row in metadata_rows
+        ]
+        self.chip_metadata_count.label = ft.Text(
+            f"{len(metadata_rows)} elements")
+        self.tbl_metadata.visible = has_rows
+        self.empty_metadata_placeholder.visible = not has_rows
+        self.update_page()
 
-        # metadata table
-        self.dt_metadata = ft.DataTable(
-            columns=[
-                self._build_column("Code", "code"),
-                self._build_column("Subdomain", "subdomain"),
-                self._build_column("Value", "value"),
-                self._build_column("Ontology", "ontology"),
-                self._build_column("Synonyms", "synonyms"),
-                self._build_column("IRI", "iri"),
-            ],
-            rows=[],
-            data_row_min_height=52,
-            data_row_max_height=240,
-            heading_row_color=self.SURFACE_VARIANT_COLOR,
-            divider_thickness=0.8,
-        )
-        self.dt_metadata.visible = False
+    def create_alert(self, message):
+        dlg = ft.AlertDialog(title=ft.Text(message))
+        self._page.open(dlg)
+        self._page.update()
 
-        table_width = sum(self.COLUMN_WIDTHS.values()) + 80
+    def update_page(self):
+        self._page.update()
 
-        # button to search ontologies
-        self.btn_search = ft.FilledTonalButton(
-            text="Search ontologies",
-            icon=ft.Icons.SEARCH,
-            tooltip="Performs ontology searches on uploaded metadata",
-        )
+    def set_controller(self, controller):
+        self._controller = controller
 
-        # chip records
-        self.chip_records = ft.Chip(
-            label=ft.Text("0 elements"),
-            leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
-            bgcolor=self.PRIMARY_CONTAINER_COLOR,
-            shape=ft.StadiumBorder(),
-        )
+    @property
+    def controller(self):
+        return self._controller
 
-        # empty table state
-        self.empty_table_state = ft.Column(
-            [
-                ft.Icon(ft.Icons.TABLE_VIEW, size=56,
-                        color=self.PRIMARY_COLOR),
-                ft.Text(
-                    "Load an Excel file to see the metadata organized in the table.",
-                    text_align=ft.TextAlign.CENTER,
-                ),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            visible=True,
-        )
+    @controller.setter
+    def controller(self, controller):
+        self._controller = controller
 
-        # card for the table
-        self.card_table = ft.Card(
-            elevation=2,
-            content=ft.Container(
-                padding=16,
-                width=table_width,
-                content=ft.Column(
-                    [
-                        ft.Row(
-                            [
-                                ft.Text(
-                                    "Metadata", size=18,
-                                    weight=ft.FontWeight.W_600
-                                ),
-                                self.chip_records,
-                                ft.Container(expand=True),
-                                self.btn_search,
-                            ],
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        ft.Divider(height=12, thickness=1,
-                                   color=self.OUTLINE_VARIANT_COLOR),
-                        ft.Container(
-                            bgcolor=self.SURFACE_COLOR,
-                            border_radius=12,
-                            padding=8,
-                            content=ft.Column(
-                                [
-                                    self.dt_metadata,
-                                    self.empty_table_state,
-                                ],
-                                scroll=ft.ScrollMode.AUTO,
-                                expand=True,
-                            ),
-                        ),
-                    ],
-                    spacing=12,
-                ),
-            ),
-        )
-
-    def _define_layout(self):
-        controls_layout = ft.Column(
-            [
-                self.img_founding_gide,
-                ft.Row(
-                    [
-                        self.btn_select_file,
-                    ],
-                    spacing=16,
-                    alignment=ft.MainAxisAlignment.START,
-                ),
-                self.card_table,
-            ],
-            spacing=20,
-        )
-
-        return controls_layout
+    @property
+    def page(self):
+        return self._page
 
     def _configure_page(self):
         self._page.theme_mode = ft.ThemeMode.LIGHT
@@ -209,10 +128,134 @@ class ViewOntology(ft.Control):
             ],
         )
 
+    def _build_controls(self):
+        # logo founding gide
+        self.img_founding_gide = ft.Column(
+            [
+                ft.Image(src="assets/images/foundingGIDE.png", width=260,
+                         fit=ft.ImageFit.CONTAIN),
+            ],
+            spacing=4,
+        )
+
+        # button select the metadata excel file
+        self.file_picker = ft.FilePicker()
+        self._page.overlay.append(self.file_picker)
+        self.btn_select_metadata_file = ft.FilledButton(
+            text="Select metadata file",
+            icon=ft.Icons.UPLOAD_FILE,
+            tooltip="Select the metadata excel file to search for ontologies",
+        )
+
+        # metadata table
+        self.tbl_metadata = ft.DataTable(
+            columns=[
+                self._build_column("Code", "code"),
+                self._build_column("Subdomain", "subdomain"),
+                self._build_column("Value", "value"),
+                self._build_column("Ontology", "ontology"),
+                self._build_column("Synonyms", "synonyms"),
+                self._build_column("IRI", "iri"),
+            ],
+            rows=[],
+            data_row_min_height=52,
+            data_row_max_height=240,
+            heading_row_color=self.SURFACE_VARIANT_COLOR,
+            divider_thickness=0.8,
+        )
+        self.tbl_metadata.visible = False
+
+        table_width = sum(self.COLUMN_WIDTHS.values()) + 80
+
+        # button to search ontologies
+        self.btn_search = ft.FilledTonalButton(
+            text="Search ontologies",
+            icon=ft.Icons.SEARCH,
+            tooltip="Performs ontology searches on uploaded metadata",
+        )
+
+        # chip records
+        self.chip_metadata_count = ft.Chip(
+            label=ft.Text("0 elements"),
+            leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
+            bgcolor=self.PRIMARY_CONTAINER_COLOR,
+            shape=ft.StadiumBorder(),
+        )
+
+        # empty table state
+        self.empty_metadata_placeholder = ft.Column(
+            [
+                ft.Icon(ft.Icons.TABLE_VIEW, size=56,
+                        color=self.PRIMARY_COLOR),
+                ft.Text(
+                    "Load an Excel file to see the metadata organized in the table.",
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            visible=True,
+        )
+
+        # card for the table
+        self.card_metadata_table = ft.Card(
+            elevation=2,
+            content=ft.Container(
+                padding=16,
+                width=table_width,
+                content=ft.Column(
+                    [
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Metadata", size=18,
+                                    weight=ft.FontWeight.W_600
+                                ),
+                                self.chip_metadata_count,
+                                ft.Container(expand=True),
+                                self.btn_search,
+                            ],
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        ft.Divider(height=12, thickness=1,
+                                   color=self.OUTLINE_VARIANT_COLOR),
+                        ft.Container(
+                            bgcolor=self.SURFACE_COLOR,
+                            border_radius=12,
+                            padding=8,
+                            content=ft.Column(
+                                [
+                                    self.tbl_metadata,
+                                    self.empty_metadata_placeholder,
+                                ],
+                                scroll=ft.ScrollMode.AUTO,
+                                expand=True,
+                            ),
+                        ),
+                    ],
+                    spacing=12,
+                ),
+            ),
+        )
+
+    def _define_layout(self) -> ft.Column:
+        controls_layout = ft.Column(
+            [
+                self.img_founding_gide,
+                self.btn_select_metadata_file,
+                self.card_metadata_table,
+            ],
+            spacing=20,
+        )
+
+        return controls_layout
+
     def _bind_events(self):
-        """Bind events"""
+        """
+        Wire UI events to controller callbacks; requires controller to be set.
+        """
         self.file_picker.on_result = self.on_file_picked
-        self.btn_select_file.on_click = lambda \
+        self.btn_select_metadata_file.on_click = lambda \
                 _: self.file_picker.pick_files(
             allow_multiple=False,
             allowed_extensions=["xlsx"],
@@ -220,59 +263,19 @@ class ViewOntology(ft.Control):
         self.btn_search.on_click = self._controller.lookup_term
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
+        """
+        Handle file picker result, showing the table and delegating file
+        processing to the controller; alert when no file is selected.
+        """
         if e.files:
-            self.empty_table_state.visible = False
-            self.dt_metadata.visible = True
+            self.empty_metadata_placeholder.visible = False
+            self.tbl_metadata.visible = True
             self._controller.get_metadata_excel_file(e.files)
         else:
             self.create_alert("No file selected!")
 
-    def update_metadata_table(self, metadata_rows: list[dict]):
-        """Populate the metadata table with pre-serialized rows."""
-        has_rows = bool(metadata_rows)
-        self.dt_metadata.rows = [
-            ft.DataRow(
-                cells=[
-                    self._build_cell(row.get("code", ""), "code"),
-                    self._build_cell(row.get("subdomain", ""), "subdomain"),
-                    self._build_cell(row.get("value", ""), "value"),
-                    self._build_cell(row.get("ontology", ""), "ontology"),
-                    self._build_cell(row.get("synonyms", ""), "synonyms"),
-                    self._build_cell(row.get("iri", ""), "iri"),
-                ]
-            )
-
-            for row in metadata_rows
-        ]
-        self.chip_records.label = ft.Text(f"{len(metadata_rows)} elementi")
-        self.dt_metadata.visible = has_rows
-        self.empty_table_state.visible = not has_rows
-        self.update_page()
-
-    @property
-    def controller(self):
-        return self._controller
-
-    @controller.setter
-    def controller(self, controller):
-        self._controller = controller
-
-    @property
-    def page(self):
-        return self._page
-
-    def set_controller(self, controller):
-        self._controller = controller
-
-    def create_alert(self, message):
-        dlg = ft.AlertDialog(title=ft.Text(message))
-        self._page.open(dlg)
-        self._page.update()
-
-    def update_page(self):
-        self._page.update()
-
     def _build_column(self, title: str, column_key: str) -> ft.DataColumn:
+        """ Return a configured DataColumn for the metadata table."""
         width = self.COLUMN_WIDTHS.get(column_key)
         label_control: ft.Control = ft.Text(title)
         if width:
@@ -283,6 +286,10 @@ class ViewOntology(ft.Control):
         return ft.DataColumn(label_control)
 
     def _build_cell(self, value: str, column_key: str) -> ft.DataCell:
+        """
+        Return a configured DataCell for the metadata table, applying width
+         and content formatting (IRI links open externally).
+        """
         width = self.COLUMN_WIDTHS.get(column_key)
 
         if column_key == "iri" and value:
