@@ -8,7 +8,8 @@ class ControllerOntology:
     def __init__(self, view, model):
         # the view, with the graphical elements of the UI
         self._view = view
-        # the model, which implements the logic of the program and holds the persistence
+        # the model, which implements the logic of the program and holds the
+        # persistence
         self._model = model
 
     def get_metadata_excel_file(self,
@@ -38,14 +39,16 @@ class ControllerOntology:
     def lookup_term(self, e):
         """BioPortal lookups from the UI."""
         try:
-            metadata_container = self._model.search_ontology_from_metadata()
-            self._view.update_metadata_table(self._build_metadata_rows(metadata_container))
+            term_results = self._model.search_terms_from_metadata()
+            rows = self._build_term_rows(term_results)
+            self._view.update_metadata_table(rows)
+            return rows
         except (ValueError, ConfigError) as exc:
             self._view.create_alert(str(exc))
-            return None
+            return []
 
     def _build_metadata_rows(self, metadata_container):
-        rows = []
+        entries = []
         metadata_container_sorted = metadata_container.get_cells_sorted()
         for code in metadata_container_sorted.keys():
             metadata = metadata_container.get_metadata(code)
@@ -53,18 +56,35 @@ class ControllerOntology:
                 continue
 
             ontology = metadata.domain.ontology if metadata.domain else None
+            terms = self._model.split_terms(metadata.cell_value)
+            if not terms:
+                terms = [""]
+            for term in terms:
+                entries.append((metadata, term, ontology))
+
+        return self._build_rows(entries)
+
+    def _build_term_rows(self, term_results):
+        return self._build_rows(term_results)
+
+    @staticmethod
+    def _build_rows(entries):
+        rows = []
+        for metadata, term, ontology in entries:
             ontology_display = ""
             if ontology:
                 if ontology.value:
                     ontology_display = f"{ontology.id}: {ontology.value}"
                 else:
                     ontology_display = ontology.id
+
             rows.append({
                 "code": metadata.code,
                 "subdomain": metadata.subdomain,
-                "value": metadata.cell_value,
+                "value": term,
                 "ontology": ontology_display,
-                "synonyms": ", ".join(ontology.synonyms) if ontology and ontology.synonyms else "",
+                "synonyms": ", ".join(ontology.synonyms)
+                if ontology and ontology.synonyms else "",
                 "iri": ontology.base_uri if ontology else "",
             })
 
