@@ -11,5 +11,6 @@
   "phenotype": "MP",
   "radiology": "RADLEX",
   "analysis_ontology": "SWO",
-  "strain": "EFO"
+  "strain": "EFO",
+  "dataset": "NONE"
 }

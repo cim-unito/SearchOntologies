@@ -45,6 +45,9 @@ class ModelOntology:
             if not cell_value or not domain or not domain.ontology:
                 continue
 
+            if domain.id.casefold() == "dataset":
+                continue
+
             ontology_id = meta.get_ontology_id()
             if not ontology_id:
                 continue

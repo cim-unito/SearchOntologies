@@ -1,108 +1,113 @@
 {
-	"sheet_name": "Foglio1",
-	"column_index": 5,
+	"sheet_name": "metadata template",
+	"column_index": 4,
 	"cells": {
-		"B29": {
+		"B27": {
+			"cell_name": "Dataset ID - do not edit this line",
+			"domain": "dataset",
+			"subdomain": "dataset id"
+		},
+		"B21": {
 			"cell_name": "imaging modality",
 			"domain": "imaging",
 			"subdomain": "imaging modality"
 		},
-		"B30": {
+		"B22": {
 			"cell_name": "imaging sub-modality",
 			"domain": "imaging",
 			"subdomain": "imaging submodality"
 		},
-		"B32": {
+		"B24": {
 			"cell_name": "imaging coverage",
 			"domain": "anatomy",
 			"subdomain": "imaging coverage"
 		},
-		"B60": {
+		"B55": {
 			"cell_name": "disease model",
 			"domain": "disease",
 			"subdomain": "disease model"
 		},
-		"B61": {
+		"B56": {
 			"cell_name": "organ or tissue",
 			"domain": "anatomy",
 			"subdomain": "organ or tissue"
 		},
-		"B78": {
+		"B72": {
 			"cell_name": "statistical methods",
 			"domain": "analysis_ontology",
 			"subdomain": "statistical methods"
 		},
-		"B80": {
+		"B74": {
 			"cell_name": "species",
 			"domain": "genomic",
 			"subdomain": "species"
 		},
-		"B81": {
+		"B75": {
 			"cell_name": "strain",
 			"domain": "strain",
 			"subdomain": "strain"
 		},
-		"B82": {
+		"B76": {
 			"cell_name": "immune status",
 			"domain": "phenotype",
 			"subdomain": "immune status"
 		},
-		"B90": {
+		"B84": {
 			"cell_name": "genotype",
 			"domain": "genomic",
 			"subdomain": "genotype"
 		},
-		"B91": {
+		"B85": {
 			"cell_name": "genetic manipulation",
 			"domain": "genomic",
 			"subdomain": "genetic manipulation"
 		},
-		"B101": {
+		"B92": {
 			"cell_name": "drug name",
 			"domain": "drugs",
 			"subdomain": "drug"
 		},
-		"B118": {
+		"B110": {
 			"cell_name": "target organ/tissue",
 			"domain": "experimental_conditions",
 			"subdomain": "target organ/tissue"
 		},
-		"B126": {
+		"B118": {
 			"cell_name": "analgesic name",
 			"domain": "drugs",
 			"subdomain": "analgesic"
 		},
-		"B132": {
+		"B124": {
 			"cell_name": "drugs",
 			"domain": "drugs",
 			"subdomain": "anhestetic"
 		},
-		"B137": {
+		"B129": {
 			"cell_name": "method",
 			"domain": "experimental_conditions",
 			"subdomain": "euthanasia method"
 		},
-		"B140": {
+		"B132": {
 			"cell_name": "tissues collected post-euthanasia",
-			"domain": "pathology",
+			"domain": "anatomy",
 			"subdomain": "tissue excised"
 		},
-		"B142": {
-			"cell_name": "histological procedure",
+		"B134": {
+			"cell_name": "tissue description",
 			"domain": "pathology",
 			"subdomain": "histological tissue description"
 		},
-		"B152": {
+		"B148": {
 			"cell_name": "commercial name",
 			"domain": "drugs",
 			"subdomain": "contrast agent"
 		},
-		"B158": {
+		"B154": {
 			"cell_name": "route of administration",
 			"domain": "experimental_conditions",
 			"subdomain": "route administration"
 		},
-		"B162": {
+		"B157": {
 			"cell_name": "identification",
 			"domain": "cell_line",
 			"subdomain": "cell line name"
