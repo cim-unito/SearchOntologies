@@ -7,17 +7,15 @@ class ViewOntology(ft.Control):
     SURFACE_COLOR = "#F7FAF9"
     SURFACE_VARIANT_COLOR = "#E0E7E6"
     OUTLINE_VARIANT_COLOR = "#C4D2D0"
-    HEADER_ACCENT_COLOR = "#4F8F79"
-    HEADER_BACKGROUND_COLOR = "#D7E9E6"
 
     COLUMN_WIDTHS = {
-        "choice": 60,
         "code": 70,
-        "subdomain": 100,
+        "domain": 100,
         "value": 140,
         "ontology": 120,
         "synonyms": 140,
-        "iri": 180
+        "iri": 180,
+        "choice": 60,
     }
 
     def __init__(self, page: ft.Page):
@@ -74,13 +72,13 @@ class ViewOntology(ft.Control):
             ft.DataRow(
                 color=self._row_color(row),
                 cells=[
-                    self._build_cell(row, "choice"),
                     self._build_cell(row.get("code", ""), "code"),
-                    self._build_cell(row.get("subdomain", ""), "subdomain"),
+                    self._build_cell(row.get("domain", ""), "domain"),
                     self._build_cell(row.get("value", ""), "value"),
                     self._build_cell(row.get("ontology", ""), "ontology"),
                     self._build_cell(row.get("synonyms", ""), "synonyms"),
                     self._build_cell(row.get("iri", ""), "iri"),
+                    self._build_cell(row, "choice"),
                 ]
             )
 
@@ -157,18 +155,18 @@ class ViewOntology(ft.Control):
         # metadata table
         self.tbl_metadata = ft.DataTable(
             columns=[
-                self._build_column("", "choice"),
                 self._build_column("Code", "code"),
-                self._build_column("Subdomain", "subdomain"),
+                self._build_column("Domain", "Domain"),
                 self._build_column("Value", "value"),
                 self._build_column("Ontology", "ontology"),
                 self._build_column("Synonyms", "synonyms"),
                 self._build_column("IRI", "iri"),
+                self._build_column("", "choice"),
             ],
             rows=[],
             data_row_min_height=52,
             data_row_max_height=240,
-            heading_row_color=self.HEADER_BACKGROUND_COLOR,
+            heading_row_color=self.SURFACE_VARIANT_COLOR,
             divider_thickness=0.8,
         )
         self.tbl_metadata.visible = False
@@ -194,7 +192,8 @@ class ViewOntology(ft.Control):
                 ft.Icon(ft.Icons.TABLE_VIEW, size=56,
                         color=self.PRIMARY_COLOR),
                 ft.Text(
-                    "Load an Excel file to see the metadata organized in the table.",
+                    value="Load an Excel file to see the metadata organized "
+                          "in the table.",
                     text_align=ft.TextAlign.CENTER,
                 ),
             ],
@@ -210,9 +209,9 @@ class ViewOntology(ft.Control):
                 padding=16,
                 expand=True,
                 content=ft.Column(
-                    [
+                    controls=[
                         ft.Row(
-                            [
+                            controls=[
                                 ft.Text(
                                     "Metadata", size=18,
                                     weight=ft.FontWeight.W_600
@@ -230,7 +229,7 @@ class ViewOntology(ft.Control):
                             border_radius=12,
                             padding=8,
                             content=ft.Column(
-                                [
+                                controls=[
                                     ft.Row(
                                         [ft.Container(
                                             expand=True,
@@ -253,11 +252,11 @@ class ViewOntology(ft.Control):
 
     def _define_layout(self) -> ft.Column:
         controls_layout = ft.Column(
-            [
+            controls=[
                 self.img_founding_gide,
                 self.btn_select_metadata_file,
                 ft.Row(
-                    [ft.Container(content=self.card_metadata_table)],
+                    controls=[ft.Container(content=self.card_metadata_table)],
                     alignment=ft.MainAxisAlignment.CENTER,
                     expand=True,
                 ),
@@ -299,11 +298,6 @@ class ViewOntology(ft.Control):
             label_text = ft.Text(
                 title,
                 weight=ft.FontWeight.BOLD,
-                color=(
-                    self.HEADER_ACCENT_COLOR
-                    if column_key != "choice"
-                    else None
-                ),
             )
             label_control = ft.Container(
                 width=width,
@@ -332,7 +326,7 @@ class ViewOntology(ft.Control):
                 ),
             )
             content = ft.Row(
-                [icon_button],
+                controls=[icon_button],
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
@@ -343,8 +337,17 @@ class ViewOntology(ft.Control):
                 max_lines=3,
                 overflow=ft.TextOverflow.ELLIPSIS,
             )
-        if width:
-            content = ft.Container(width=width, content=content)
+        alignment = (
+            ft.alignment.center
+            if column_key == "choice"
+            else ft.alignment.center_left
+        )
+        content = ft.Container(
+            width=width,
+            content=content,
+            alignment=alignment,
+            expand=True,
+        )
         return ft.DataCell(content)
 
     def _build_choice_cell(self, row: dict) -> ft.Control:
@@ -369,7 +372,8 @@ class ViewOntology(ft.Control):
                     if group_checkboxes:
                         default_checkbox = group_checkboxes[0]
                         for group_checkbox in group_checkboxes:
-                            group_checkbox.value = group_checkbox is default_checkbox
+                            group_checkbox.value = (group_checkbox is
+                                                    default_checkbox)
                         self._controller.set_user_selection(
                             group, default_checkbox.data
                         )

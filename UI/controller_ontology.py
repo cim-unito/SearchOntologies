@@ -54,72 +54,64 @@ class ControllerOntology:
     def _build_metadata_rows(self, metadata_container):
         entries = []
         metadata_container_sorted = metadata_container.get_cells_sorted()
+
         for code in metadata_container_sorted.keys():
             metadata = metadata_container.get_metadata(code)
             if metadata is None:
                 continue
 
-            ontology = metadata.domain.ontology if metadata.domain else None
-            terms = self._model.split_terms(metadata.cell_value)
-            if not terms:
-                terms = [""]
+            ontology = metadata.domain.ontology if getattr(metadata, "domain",
+                                                           None) else None
+            terms = self._model.split_terms(
+                getattr(metadata, "cell_value", "")) or [""]
+            candidates = [ontology] if ontology else []
+
             for term in terms:
-                entries.append(
-                    (metadata, term, [ontology] if ontology else []))
+                entries.append((metadata, term, candidates))
 
         return self._build_rows(entries, allow_selection=False)
 
     def _build_term_rows(self, term_results):
+        self._update_default_selection(term_results)
         return self._build_rows(term_results, allow_selection=True)
+
+    def _update_default_selection(self, entries):
+        for metadata, term, ontology in entries:
+            candidates = list(ontology or []) or [None]
+            group_id = f"{metadata.code}:{term}"
+            if self._user_selection.get(group_id):
+                continue
+            for candidate in candidates:
+                candidate_value = self._candidate_value(candidate)
+                if candidate_value:
+                    self._user_selection[group_id] = candidate_value
+                    break
 
     def _build_rows(self, entries, allow_selection: bool):
         rows = []
         group_index = 0
         for metadata, term, ontology in entries:
-            ontology_display = ""
-            candidates = ontology or []
-            if not candidates:
-                candidates = [None]
+            candidates = list(ontology or []) or [None]
             group_id = f"{metadata.code}:{term}"
-            selected_value = self._user_selection.get(group_id, "")
-            default_value = selected_value
-            if allow_selection and not default_value:
-                for candidate in candidates:
-                    if not candidate:
-                        continue
-                    candidate_value = (
-                            candidate.base_uri or candidate.value or candidate.id
-                    )
-                    if candidate_value:
-                        default_value = candidate_value
-                        break
-                if default_value:
-                    self._user_selection[group_id] = default_value
+            default_value = self._user_selection.get(group_id, "")
             for candidate in candidates:
                 selection_option = None
                 if allow_selection and candidate:
-                    label = candidate.value or candidate.base_uri or candidate.id
-                    value = candidate.base_uri or candidate.value or candidate.id
+                    label = self._candidate_label(candidate)
+                    value = self._candidate_value(candidate)
                     if value:
-                        selection_option = {"label": label, "value": value}
-                if candidate:
-                    if candidate.value:
-                        ontology_display = (
-                            f"{candidate.id}: {candidate.value}"
-                        )
-                    else:
-                        ontology_display = candidate.id
-                else:
-                    ontology_display = ""
+                        selection_option = {"label": label or value,
+                                            "value": value}
 
                 rows.append({
                     "code": metadata.code,
                     "subdomain": metadata.subdomain,
                     "value": term,
-                    "ontology": ontology_display,
-                    "synonyms": ", ".join(candidate.synonyms)
-                    if candidate and candidate.synonyms else "",
-                    "iri": candidate.base_uri if candidate else "",
+                    "ontology": self._format_ontology_display(candidate),
+                    "synonyms": ", ".join(getattr(candidate, "synonyms", []))
+                    if getattr(candidate, "synonyms", None) else "",
+                    "iri": getattr(candidate, "base_uri",
+                                   "") if candidate else "",
                     "group_index": group_index,
                     "selection_group": group_id,
                     "selection_option": selection_option,
@@ -129,3 +121,33 @@ class ControllerOntology:
             group_index += 1
 
         return rows
+
+    @staticmethod
+    def _candidate_value(candidate):
+        if not candidate:
+            return None
+        return (
+                getattr(candidate, "base_uri", None)
+                or getattr(candidate, "value", None)
+                or getattr(candidate, "id", None)
+        )
+
+    @staticmethod
+    def _candidate_label(candidate):
+        if not candidate:
+            return None
+        return (
+                getattr(candidate, "value", None)
+                or getattr(candidate, "base_uri", None)
+                or getattr(candidate, "id", None)
+        )
+
+    @staticmethod
+    def _format_ontology_display(candidate):
+        if not candidate:
+            return ""
+        value = getattr(candidate, "value", None)
+        ident = getattr(candidate, "id", None)
+        if value:
+            return f"{ident}: {value}" if ident else value
+        return ident or ""

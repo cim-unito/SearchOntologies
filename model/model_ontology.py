@@ -34,15 +34,15 @@ class ModelOntology:
             self._metadata_container,
             file_path)
 
-    def search_terms_from_metadata(self) -> list[tuple[Metadata, str, Ontology]]:
+    def search_terms_from_metadata(self) -> list[
+        tuple[Metadata, str, list[Ontology]]]:
         """
         Use BioPortal to populate ontology details for each metadata term.
 
         Returns a list of (metadata, term, ontology) tuples.
         """
         metadata_dict = self._metadata_container.get_cells()
-        results: list[tuple[Metadata, str, list[Ontology]]] = []
-        cache: dict[tuple[str, str], list[dict]] = {}
+        results = []
         for meta in metadata_dict.values():
             domain = meta.get_domain()
             cell_value = meta.get_cell_value()
@@ -59,13 +59,10 @@ class ModelOntology:
 
             terms = self._split_terms(cell_value)
             for term in terms:
-                cache_key = (ontology_id, term.casefold())
-                if cache_key not in cache:
-                    cache[cache_key] = self._bioportal.search_ontology(
-                        cell_value=term,
-                        ontology_id=ontology_id
-                    )
-                result_items = cache[cache_key]
+                result_items = self._bioportal.search_ontology(
+                    cell_value=term,
+                    ontology_id=ontology_id
+                )
                 candidates = []
                 for item in result_items:
                     candidates.append(Ontology(
