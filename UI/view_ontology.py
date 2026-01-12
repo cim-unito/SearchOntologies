@@ -33,7 +33,9 @@ class ViewOntology(ft.Control):
         # graphical elements
         self.img_founding_gide = None
         self.btn_select_metadata_file = None
+        self.btn_export_csv = None
         self.file_picker = None
+        self.directory_picker = None
         self.tbl_metadata = None
         self.btn_search = None
         self.chip_metadata_count = None
@@ -152,6 +154,15 @@ class ViewOntology(ft.Control):
             tooltip="Select the metadata excel file to search for ontologies",
         )
 
+        # button to export CSVs
+        self.directory_picker = ft.FilePicker()
+        self._page.overlay.append(self.directory_picker)
+        self.btn_export_csv = ft.FilledButton(
+            text="Save CSVs",
+            icon=ft.Icons.SAVE_ALT,
+            tooltip="Save ontology CSVs to a selected folder",
+        )
+
         # metadata table
         self.tbl_metadata = ft.DataTable(
             columns=[
@@ -254,7 +265,14 @@ class ViewOntology(ft.Control):
         controls_layout = ft.Column(
             controls=[
                 self.img_founding_gide,
-                self.btn_select_metadata_file,
+                ft.Row(
+                    controls=[
+                        self.btn_select_metadata_file,
+                        self.btn_export_csv,
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=12,
+                ),
                 ft.Row(
                     controls=[ft.Container(content=self.card_metadata_table)],
                     alignment=ft.MainAxisAlignment.CENTER,
@@ -277,6 +295,9 @@ class ViewOntology(ft.Control):
             allowed_extensions=["xlsx"],
         )
         self.btn_search.on_click = self._controller.lookup_term
+        self.directory_picker.on_result = self.on_directory_picked
+        self.btn_export_csv.on_click = lambda \
+            _: self.directory_picker.get_directory_path()
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         """
@@ -289,6 +310,13 @@ class ViewOntology(ft.Control):
             self._controller.get_metadata_excel_file(e.files)
         else:
             self.create_alert("No file selected!")
+
+    def on_directory_picked(self, e: ft.FilePickerResultEvent):
+        """Handle directory selection for CSV export."""
+        if e.path:
+            self._controller.export_csvs(e.path)
+        else:
+            self.create_alert("No folder selected!")
 
     def _build_column(self, title: str, column_key: str) -> ft.DataColumn:
         """ Return a configured DataColumn for the metadata table."""

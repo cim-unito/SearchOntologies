@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -6,7 +7,7 @@ from openpyxl.workbook import Workbook
 from model.metadata_container import MetadataContainer
 
 
-class MetadataExcelIO:
+class MetadataFileIO:
     """Handle reading and writing metadata values from/to Excel files."""
 
     def read_metadata_values(
@@ -71,16 +72,23 @@ class MetadataExcelIO:
 
         return metadata_container
 
-    def write_metadata_values(self):
-        pass
+    def write_csv(self, file_path: Path, fieldnames: list[str],
+                  rows: list[dict]):
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with file_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
 
-    def _normalize(self, value: object) -> str | None:
+    @staticmethod
+    def _normalize(value: object) -> str | None:
         if not isinstance(value, str):
             return None
         cleaned = value.strip()
         return cleaned.casefold() if cleaned else None
 
-    def _stringify(self, value: object) -> str | None:
+    @staticmethod
+    def _stringify(value: object) -> str | None:
         if value is None:
             return ""
         text = str(value).strip()

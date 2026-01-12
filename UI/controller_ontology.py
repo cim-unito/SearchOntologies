@@ -1,7 +1,12 @@
+from typing import Iterable, Optional
+
 import flet as ft
 from flet.core.file_picker import FilePickerFile
 
 from config.config import ConfigError
+from model.metadata import Metadata
+from model.metadata_container import MetadataContainer
+from model.ontology import Ontology
 
 
 class ControllerOntology:
@@ -14,6 +19,7 @@ class ControllerOntology:
         self._user_selection: dict[str, str] = {}
 
     def set_user_selection(self, group_id: str, value: str):
+        """Store the user's selection for a given row group."""
         self._user_selection[group_id] = value
 
     def get_metadata_excel_file(self,
@@ -40,7 +46,7 @@ class ControllerOntology:
         self._view.update_metadata_table(
             self._build_metadata_rows(metadata_container))
 
-    def lookup_term(self, e):
+    def lookup_term(self, e: ft.ControlEvent) -> list:
         """BioPortal lookups from the UI."""
         try:
             term_results = self._model.search_terms_from_metadata()
@@ -51,12 +57,33 @@ class ControllerOntology:
             self._view.create_alert(str(exc))
             return []
 
-    def _build_metadata_rows(self, metadata_container):
+    def export_csvs(self, directory_path: str):
+        """Export ontology codes and terms to CSV files."""
+        if not directory_path:
+            self._view.create_alert("No folder selected!")
+            return
+        codes_path, terms_path = self._model.export_csvs(
+            directory_path, self._user_selection
+        )
+
+        if not codes_path and not terms_path:
+            self._view.create_alert("No metadata terms available to export.")
+            return
+
+        self._view.create_alert(
+            "CSV files saved:\n"
+            f"- {codes_path}\n"
+            f"- {terms_path}"
+        )
+
+    def _build_metadata_rows(self,
+                             metadata_container: MetadataContainer,
+                             ) -> list:
+        """Build read-only table rows from metadata container values."""
         entries = []
         metadata_container_sorted = metadata_container.get_cells_sorted()
 
-        for code in metadata_container_sorted.keys():
-            metadata = metadata_container.get_metadata(code)
+        for metadata in metadata_container_sorted.values():
             if metadata is None:
                 continue
 
@@ -64,21 +91,30 @@ class ControllerOntology:
                                                            None) else None
             terms = self._model.split_terms(
                 getattr(metadata, "cell_value", "")) or [""]
-            candidates = [ontology] if ontology else []
 
             for term in terms:
-                entries.append((metadata, term, candidates))
+                entries.append((metadata, term, ontology))
 
         return self._build_rows(entries, allow_selection=False)
 
-    def _build_term_rows(self, term_results):
+    def _build_term_rows(
+            self,
+            term_results: list[tuple[Metadata, str, list[Ontology]]],
+    ) -> list:
+        """Build selectable table rows for ontology term lookup results."""
         self._update_default_selection(term_results)
         return self._build_rows(term_results, allow_selection=True)
 
-    def _update_default_selection(self, entries):
-        for metadata, term, ontology in entries:
-            candidates = list(ontology or []) or [None]
-            group_id = f"{metadata.code}:{term}"
+    def _update_default_selection(
+            self,
+            entries: Iterable[
+                tuple[Metadata, str, Optional[Iterable[Ontology]]]
+            ],
+    ):
+        """Set default selections for term groups if missing."""
+        for index, (metadata, term, ontology) in enumerate(entries):
+            candidates = self._normalize_candidates(ontology)
+            group_id = self._build_group_id(metadata, term, index)
             if self._user_selection.get(group_id):
                 continue
             for candidate in candidates:
@@ -87,12 +123,19 @@ class ControllerOntology:
                     self._user_selection[group_id] = candidate_value
                     break
 
-    def _build_rows(self, entries, allow_selection: bool):
+    def _build_rows(
+            self,
+            entries: Iterable[
+                tuple[Metadata, str, Optional[Iterable[Ontology]]]
+            ],
+            allow_selection: bool,
+    ) -> list:
+        """Create UI table row dictionaries for metadata or term results."""
         rows = []
         group_index = 0
-        for metadata, term, ontology in entries:
-            candidates = list(ontology or []) or [None]
-            group_id = f"{metadata.code}:{term}"
+        for index, (metadata, term, ontology) in enumerate(entries):
+            candidates = self._normalize_candidates(ontology)
+            group_id = self._build_group_id(metadata, term, index)
             default_value = self._user_selection.get(group_id, "")
             for candidate in candidates:
                 selection_option = None
@@ -123,17 +166,38 @@ class ControllerOntology:
         return rows
 
     @staticmethod
-    def _candidate_value(candidate):
-        if not candidate:
-            return None
-        return (
-                getattr(candidate, "base_uri", None)
-                or getattr(candidate, "value", None)
-                or getattr(candidate, "id", None)
-        )
+    def _normalize_candidates(ontology):
+        if ontology is None:
+            return [None]
+        if isinstance(ontology, str):
+            return [ontology]
+        try:
+            candidates = list(ontology)
+        except TypeError:
+            return [ontology]
+        return candidates or [None]
 
     @staticmethod
-    def _candidate_label(candidate):
+    def _build_group_id(metadata, term, index: int):
+        safe_term = term if term else "<empty>"
+        return f"{metadata.code}:{safe_term}:{index}"
+
+    @staticmethod
+    def _candidate_value(candidate: Ontology | None) -> Optional[str]:
+        """Return the value used to identify a candidate in selection menus."""
+        if not candidate:
+            return None
+        ident = getattr(candidate, "id", None)
+        value = getattr(candidate, "value", None)
+        if ident and value:
+            if value.startswith(f"{ident}:"):
+                return value
+            return f"{ident}:{value}"
+        return ident or value
+
+    @staticmethod
+    def _candidate_label(candidate: Ontology | None) -> Optional[str]:
+        """Return the readable label for a candidate option."""
         if not candidate:
             return None
         return (
@@ -143,7 +207,8 @@ class ControllerOntology:
         )
 
     @staticmethod
-    def _format_ontology_display(candidate):
+    def _format_ontology_display(candidate: Ontology | None) -> str:
+        """Format ontology display text for the table view."""
         if not candidate:
             return ""
         value = getattr(candidate, "value", None)
