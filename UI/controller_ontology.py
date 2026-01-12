@@ -82,7 +82,19 @@ class ControllerOntology:
                 candidates = [None]
             group_id = f"{metadata.code}:{term}"
             selected_value = self._user_selection.get(group_id, "")
-            choice_options = []
+            default_value = selected_value
+            if allow_selection and not default_value:
+                for candidate in candidates:
+                    if not candidate:
+                        continue
+                    candidate_value = (
+                            candidate.base_uri or candidate.value or candidate.id
+                    )
+                    if candidate_value:
+                        default_value = candidate_value
+                        break
+                if default_value:
+                    self._user_selection[group_id] = default_value
             for candidate in candidates:
                 selection_option = None
                 if allow_selection and candidate:
@@ -111,7 +123,7 @@ class ControllerOntology:
                     "group_index": group_index,
                     "selection_group": group_id,
                     "selection_option": selection_option,
-                    "selected_value": selected_value,
+                    "selected_value": default_value,
                 })
 
             group_index += 1

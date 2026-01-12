@@ -23,7 +23,7 @@ class ViewOntology(ft.Control):
         # page
         self._page = page
         self._page.title = "FoundingGIDE Ontology"
-        self._page.horizontal_alignment = "CENTER"
+        self._page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
         self._page.scroll = ft.ScrollMode.AUTO
 
         # controller (it is not initialized. Must be initialized in the main,
@@ -171,8 +171,6 @@ class ViewOntology(ft.Control):
         )
         self.tbl_metadata.visible = False
 
-        table_width = sum(self.COLUMN_WIDTHS.values()) + 80
-
         # button to search ontologies
         self.btn_search = ft.FilledTonalButton(
             text="Search ontologies",
@@ -208,7 +206,7 @@ class ViewOntology(ft.Control):
             elevation=2,
             content=ft.Container(
                 padding=16,
-                width=table_width,
+                expand=True,
                 content=ft.Column(
                     [
                         ft.Row(
@@ -232,8 +230,12 @@ class ViewOntology(ft.Control):
                             content=ft.Column(
                                 [
                                     ft.Row(
-                                        [self.tbl_metadata],
+                                        [ft.Container(
+                                            expand=True,
+                                            content=self.tbl_metadata
+                                        )],
                                         scroll=ft.ScrollMode.AUTO,
+                                        expand=True,
                                     ),
                                     self.empty_metadata_placeholder,
                                 ],
@@ -252,7 +254,7 @@ class ViewOntology(ft.Control):
             [
                 self.img_founding_gide,
                 self.btn_select_metadata_file,
-                self.card_metadata_table,
+                ft.Container(expand=True, content=self.card_metadata_table),
             ],
             spacing=20,
         )
@@ -348,7 +350,16 @@ class ViewOntology(ft.Control):
 
             def on_change(e, group=group_id):
                 if not e.control.value:
-                    self._controller.set_user_selection(group, "")
+                    group_checkboxes = self._choice_groups.get(group, [])
+                    if group_checkboxes:
+                        default_checkbox = group_checkboxes[0]
+                        for group_checkbox in group_checkboxes:
+                            group_checkbox.value = group_checkbox is default_checkbox
+                        self._controller.set_user_selection(
+                            group, default_checkbox.data
+                        )
+                        for group_checkbox in group_checkboxes:
+                            group_checkbox.update()
                     return
 
                 for group_checkbox in self._choice_groups.get(group, []):
