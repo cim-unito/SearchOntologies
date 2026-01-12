@@ -72,7 +72,8 @@ class MetadataFileIO:
 
         return metadata_container
 
-    def write_csv(self, file_path: Path, fieldnames: list[str],
+    @staticmethod
+    def write_csv(file_path: Path, fieldnames: list[str],
                   rows: list[dict]):
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with file_path.open("w", newline="", encoding="utf-8") as handle:

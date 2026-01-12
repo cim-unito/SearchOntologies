@@ -115,7 +115,6 @@ class ModelOntology:
                           dataset_id: str):
         domain_order = []
         domain_values = {}
-        metadata_container_sorted = metadata_container.get_cells_sorted()
         entry_index = 0
 
         for metadata in metadata_container.get_cells().values():
@@ -169,7 +168,7 @@ class ModelOntology:
         cleaned = [value for value in values if value]
         if not cleaned:
             return "NULL"
-        return ", ".join(cleaned)
+        return ";".join(cleaned)
 
     @staticmethod
     def _pascal_case(value: str) -> str:
