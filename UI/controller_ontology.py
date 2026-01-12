@@ -83,13 +83,13 @@ class ControllerOntology:
             group_id = f"{metadata.code}:{term}"
             selected_value = self._user_selection.get(group_id, "")
             choice_options = []
-            if allow_selection and ontology:
-                for candidate in ontology:
+            for candidate in candidates:
+                selection_option = None
+                if allow_selection and candidate:
                     label = candidate.value or candidate.base_uri or candidate.id
                     value = candidate.base_uri or candidate.value or candidate.id
                     if value:
-                        choice_options.append({"label": label, "value": value})
-            for idx, candidate in enumerate(candidates):
+                        selection_option = {"label": label, "value": value}
                 if candidate:
                     if candidate.value:
                         ontology_display = (
@@ -110,8 +110,7 @@ class ControllerOntology:
                     "iri": candidate.base_uri if candidate else "",
                     "group_index": group_index,
                     "selection_group": group_id,
-                    "selection_options": choice_options
-                    if allow_selection and idx == 0 else [],
+                    "selection_option": selection_option,
                     "selected_value": selected_value,
                 })
 

@@ -39,6 +39,7 @@ class ViewOntology(ft.Control):
         self.chip_metadata_count = None
         self.empty_metadata_placeholder = None
         self.card_metadata_table = None
+        self._choice_groups: dict[str, list[ft.Checkbox]] = {}
 
     def load_interface(self):
         """
@@ -66,6 +67,7 @@ class ViewOntology(ft.Control):
     def update_metadata_table(self, metadata_rows: list[dict]):
         """Populate the metadata table."""
         has_rows = bool(metadata_rows)
+        self._choice_groups = {}
         self.tbl_metadata.rows = [
             ft.DataRow(
                 color=self._row_color(row),
@@ -329,37 +331,36 @@ class ViewOntology(ft.Control):
         return ft.DataCell(content)
 
     def _build_choice_cell(self, row: dict) -> ft.Control:
-        options = row.get("selection_options") or []
-        if not options:
+        option = row.get("selection_option")
+        if not option:
             return ft.Text("")
-        if len(options) == 1:
-            option = options[0]
-            return ft.Text(option.get("label") or option.get("value") or "")
-
         selected_value = row.get("selected_value") or None
-        checkboxes: list[ft.Checkbox] = []
 
-        def on_change(e, group=row.get("selection_group")):
-            if not e.control.value:
-                self._controller.set_user_selection(group, "")
-                return
+        group_id = row.get("selection_group")
+        checkbox = ft.Checkbox(
+            value=option["value"] == selected_value,
+            label=option.get("label") or option.get("value") or "",
+            data=option["value"],
+        )
 
-            for checkbox in checkboxes:
-                checkbox.value = checkbox is e.control
-            self._controller.set_user_selection(group, e.control.data)
-            for checkbox in checkboxes:
-                checkbox.update()
+        if group_id:
+            self._choice_groups.setdefault(group_id, []).append(checkbox)
 
-        for option in options:
-            checkbox = ft.Checkbox(
-                value=option["value"] == selected_value,
-                label=option["label"],
-                data=option["value"],
-                on_change=on_change,
-            )
-            checkboxes.append(checkbox)
+            def on_change(e, group=group_id):
+                if not e.control.value:
+                    self._controller.set_user_selection(group, "")
+                    return
 
-        return ft.Column(checkboxes, spacing=0)
+                for group_checkbox in self._choice_groups.get(group, []):
+                    group_checkbox.value = group_checkbox is e.control
+                self._controller.set_user_selection(group, e.control.data)
+                for group_checkbox in self._choice_groups.get(group, []):
+                    group_checkbox.update()
+
+            checkbox.on_change = on_change
+
+        return checkbox
+
     def _row_color(self, row: dict) -> str:
         group_index = row.get("group_index")
         if group_index is None:
