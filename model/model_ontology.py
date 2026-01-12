@@ -35,12 +35,13 @@ class ModelOntology:
             file_path)
 
     def export_csv(self, directory_path: str,
-                   user_selection: dict[str, str]):
+                   user_selection: dict[str, str],
+                   empty_value: str = ""):
         """Export ontology selections to a single CSV file."""
         metadata_container = self._metadata_container
         dataset_id = metadata_container.get_dataset_id()
         fieldnames, row = self._build_export_row(
-            metadata_container, user_selection, dataset_id
+            metadata_container, user_selection, dataset_id, empty_value
         )
 
         if not fieldnames:
@@ -64,7 +65,7 @@ class ModelOntology:
 
         Returns a list of (metadata, term, ontology) tuples.
         """
-        metadata_dict = self._metadata_container.get_cells()
+        metadata_dict = self._metadata_container.get_cells_sorted()
         results = []
         for meta in metadata_dict.values():
             domain = meta.get_domain()
@@ -104,6 +105,11 @@ class ModelOntology:
         return self._split_terms(cell_value)
 
     @staticmethod
+    def build_group_id(metadata, term: str, index: int) -> str:
+        safe_term = term if term else "<empty>"
+        return f"{metadata.code}:{safe_term}:{index}"
+
+    @staticmethod
     def _split_terms(cell_value: str) -> list[str]:
         if not cell_value:
             return []
@@ -112,12 +118,13 @@ class ModelOntology:
 
     def _build_export_row(self, metadata_container,
                           user_selection: dict[str, str],
-                          dataset_id: str):
+                          dataset_id: str,
+                          empty_value: str):
         domain_order = []
         domain_values = {}
         entry_index = 0
 
-        for metadata in metadata_container.get_cells().values():
+        for metadata in metadata_container.get_cells_sorted().values():
             domain = getattr(metadata, "domain", None)
             if not domain or not domain.ontology:
                 continue
@@ -136,7 +143,7 @@ class ModelOntology:
                 continue
 
             for term in terms:
-                group_id = self._build_group_id(metadata, term, entry_index)
+                group_id = self.build_group_id(metadata, term, entry_index)
                 entry_index += 1
                 ontology_code = user_selection.get(group_id, "")
                 if ontology_code:
@@ -148,7 +155,8 @@ class ModelOntology:
         row = {"DatasetId": dataset_id}
         for ontology_domain in domain_order:
             row[ontology_domain] = self._format_cell_value(
-                domain_values.get(ontology_domain, [])
+                domain_values.get(ontology_domain, []),
+                empty_value,
             )
 
         return ["DatasetId", *domain_order], row
@@ -159,16 +167,11 @@ class ModelOntology:
         return f"{self._pascal_case(ontology_id)}{self._pascal_case(domain_value)}"
 
     @staticmethod
-    def _build_group_id(metadata, term: str, index: int) -> str:
-        safe_term = term if term else "<empty>"
-        return f"{metadata.code}:{safe_term}:{index}"
-
-    @staticmethod
-    def _format_cell_value(values: list[str]) -> str:
+    def _format_cell_value(values: list[str], empty_value: str) -> str:
         cleaned = [value for value in values if value]
         if not cleaned:
             return "NULL"
-        return ";".join(cleaned)
+        return ";".join(cleaned) if cleaned else empty_value
 
     @staticmethod
     def _pascal_case(value: str) -> str:

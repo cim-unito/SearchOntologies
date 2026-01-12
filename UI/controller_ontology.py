@@ -113,7 +113,7 @@ class ControllerOntology:
         """Set default selections for term groups if missing."""
         for index, (metadata, term, ontology) in enumerate(entries):
             candidates = self._normalize_candidates(ontology)
-            group_id = self._build_group_id(metadata, term, index)
+            group_id = self._model.build_group_id(metadata, term, index)
             if self._user_selection.get(group_id):
                 continue
             for candidate in candidates:
@@ -134,7 +134,7 @@ class ControllerOntology:
         group_index = 0
         for index, (metadata, term, ontology) in enumerate(entries):
             candidates = self._normalize_candidates(ontology)
-            group_id = self._build_group_id(metadata, term, index)
+            group_id = self._model.build_group_id(metadata, term, index)
             default_value = self._user_selection.get(group_id, "")
             for candidate in candidates:
                 selection_option = None
@@ -175,11 +175,6 @@ class ControllerOntology:
         except TypeError:
             return [ontology]
         return candidates or [None]
-
-    @staticmethod
-    def _build_group_id(metadata, term, index: int):
-        safe_term = term if term else "<empty>"
-        return f"{metadata.code}:{safe_term}:{index}"
 
     @staticmethod
     def _candidate_value(candidate: Ontology | None) -> Optional[str]:
