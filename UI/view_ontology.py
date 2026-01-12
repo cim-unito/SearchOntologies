@@ -7,6 +7,8 @@ class ViewOntology(ft.Control):
     SURFACE_COLOR = "#F7FAF9"
     SURFACE_VARIANT_COLOR = "#E0E7E6"
     OUTLINE_VARIANT_COLOR = "#C4D2D0"
+    HEADER_ACCENT_COLOR = "#4F8F79"
+    HEADER_BACKGROUND_COLOR = "#D7E9E6"
 
     COLUMN_WIDTHS = {
         "choice": 60,
@@ -166,7 +168,7 @@ class ViewOntology(ft.Control):
             rows=[],
             data_row_min_height=52,
             data_row_max_height=240,
-            heading_row_color=self.SURFACE_VARIANT_COLOR,
+            heading_row_color=self.HEADER_BACKGROUND_COLOR,
             divider_thickness=0.8,
         )
         self.tbl_metadata.visible = False
@@ -254,7 +256,11 @@ class ViewOntology(ft.Control):
             [
                 self.img_founding_gide,
                 self.btn_select_metadata_file,
-                ft.Container(expand=True, content=self.card_metadata_table),
+                ft.Row(
+                    [ft.Container(content=self.card_metadata_table)],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    expand=True,
+                ),
             ],
             spacing=20,
         )
@@ -290,9 +296,18 @@ class ViewOntology(ft.Control):
         width = self.COLUMN_WIDTHS.get(column_key)
         label_control: ft.Control = ft.Text(title)
         if width:
+            label_text = ft.Text(
+                title,
+                weight=ft.FontWeight.BOLD,
+                color=(
+                    self.HEADER_ACCENT_COLOR
+                    if column_key != "choice"
+                    else None
+                ),
+            )
             label_control = ft.Container(
                 width=width,
-                content=ft.Text(title, weight=ft.FontWeight.BOLD),
+                content=label_text,
             )
         return ft.DataColumn(label_control)
 
