@@ -31,13 +31,13 @@ class BioPortalClient:
         return self._api_key
 
     def search_ontology(self, cell_value: str,
-                        ontology_id: str) -> dict | None:
+                        ontology_id: str) -> list[dict]:
         """
-        Search a single ontology and return details of the best match.
+        Search a single ontology and return details of the top matches.
 
-        The returned dictionary contains, when available:
-        ``identifier`` (best IRI/obo id), ``notation`` (compact code), ``purl``
-        and ``synonyms`` (list of strings).
+        Each returned dictionary contains, when available: ``identifier``
+        (best IRI/obo id), ``notation`` (compact code), ``purl`` and
+        ``synonyms`` (list of strings).
         """
 
         ontology = self._normalize_ontology_id(ontology_id)
@@ -70,18 +70,21 @@ class BioPortalClient:
                 "Invalid BioPortal response (JSON expected)") from exc
 
         items = payload.get("collection", [])
-        best_item = self._select_best_item(items)
-        if not best_item:
-            return None
+        selected_items = self._select_top_items(items)
+        if not selected_items:
+            return []
 
-        identifier = self._best_identifier(best_item)
+        results = []
+        for item in selected_items:
+            identifier = self._best_identifier(item)
+            results.append({
+                "identifier": identifier,
+                "notation": self._best_notation(item, identifier),
+                "purl": self._extract_purl(identifier),
+                "synonyms": self._extract_synonyms(item),
+            })
 
-        return {
-            "identifier": identifier,
-            "notation": self._best_notation(best_item, identifier),
-            "purl": self._extract_purl(identifier),
-            "synonyms": self._extract_synonyms(best_item),
-        }
+        return results
 
     @staticmethod
     def _normalize_ontology_id(ontology: str | None) -> str:
@@ -102,12 +105,12 @@ class BioPortalClient:
         return value or None
 
     @staticmethod
-    def _select_best_item(items: list[dict]) -> dict | None:
-        """Pick the most relevant result returned by BioPortal."""
+    def _select_top_items(items: list[dict], limit: int = 3) -> list[dict]:
+        """Pick the most relevant results returned by BioPortal."""
         if not items:
-            return None
+            return []
 
-        return items[0]
+        return items[:limit]
 
     @staticmethod
     def _best_identifier(item) -> str | None:

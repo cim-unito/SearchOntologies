@@ -9,12 +9,13 @@ class ViewOntology(ft.Control):
     OUTLINE_VARIANT_COLOR = "#C4D2D0"
 
     COLUMN_WIDTHS = {
-        "code": 100,
-        "subdomain": 140,
-        "value": 180,
-        "ontology": 140,
-        "synonyms": 200,
-        "iri": 320,
+        "code": 90,
+        "subdomain": 120,
+        "value": 160,
+        "ontology": 150,
+        "synonyms": 180,
+        "iri": 240,
+        "choice": 180,
     }
 
     def __init__(self, page: ft.Page):
@@ -67,6 +68,7 @@ class ViewOntology(ft.Control):
         has_rows = bool(metadata_rows)
         self.tbl_metadata.rows = [
             ft.DataRow(
+                color=self._row_color(row),
                 cells=[
                     self._build_cell(row.get("code", ""), "code"),
                     self._build_cell(row.get("subdomain", ""), "subdomain"),
@@ -74,6 +76,7 @@ class ViewOntology(ft.Control):
                     self._build_cell(row.get("ontology", ""), "ontology"),
                     self._build_cell(row.get("synonyms", ""), "synonyms"),
                     self._build_cell(row.get("iri", ""), "iri"),
+                    self._build_cell(row, "choice"),
                 ]
             )
 
@@ -156,6 +159,7 @@ class ViewOntology(ft.Control):
                 self._build_column("Ontology", "ontology"),
                 self._build_column("Synonyms", "synonyms"),
                 self._build_column("IRI", "iri"),
+                self._build_column("User choice", "choice"),
             ],
             rows=[],
             data_row_min_height=52,
@@ -285,14 +289,16 @@ class ViewOntology(ft.Control):
             )
         return ft.DataColumn(label_control)
 
-    def _build_cell(self, value: str, column_key: str) -> ft.DataCell:
+    def _build_cell(self, value, column_key: str) -> ft.DataCell:
         """
         Return a configured DataCell for the metadata table, applying width
          and content formatting (IRI links open externally).
         """
         width = self.COLUMN_WIDTHS.get(column_key)
 
-        if column_key == "iri" and value:
+        if column_key == "choice":
+            content = self._build_choice_cell(value)
+        elif column_key == "iri" and value:
             icon_button = ft.IconButton(
                 icon=ft.Icons.OPEN_IN_NEW,
                 on_click=lambda _, url=value: self._page.launch_url(url),
@@ -318,3 +324,28 @@ class ViewOntology(ft.Control):
         if width:
             content = ft.Container(width=width, content=content)
         return ft.DataCell(content)
+
+    def _build_choice_cell(self, row: dict) -> ft.Control:
+        options = row.get("selection_options") or []
+        if not options:
+            return ft.Text("")
+        dropdown_options = [
+            ft.dropdown.Option(option["value"], option["label"])
+            for option in options
+        ]
+        return ft.Dropdown(
+            value=row.get("selected_value") or None,
+            options=dropdown_options,
+            hint_text="Select",
+            on_change=lambda e, group=row.get("selection_group"): (
+                self._controller.set_user_selection(group, e.control.value)
+            ),
+            dense=True,
+        )
+
+    def _row_color(self, row: dict) -> str:
+        group_index = row.get("group_index")
+        if group_index is None:
+            return ""
+        return self.SURFACE_COLOR if group_index % 2 == 0 \
+            else self.SURFACE_VARIANT_COLOR

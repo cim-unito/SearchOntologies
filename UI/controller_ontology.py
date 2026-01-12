@@ -11,6 +11,10 @@ class ControllerOntology:
         # the model, which implements the logic of the program and holds the
         # persistence
         self._model = model
+        self._user_selection: dict[str, str] = {}
+
+    def set_user_selection(self, group_id: str, value: str):
+        self._user_selection[group_id] = value
 
     def get_metadata_excel_file(self,
                                 metadata_xlsx_file: list[
@@ -60,32 +64,57 @@ class ControllerOntology:
             if not terms:
                 terms = [""]
             for term in terms:
-                entries.append((metadata, term, ontology))
+                entries.append(
+                    (metadata, term, [ontology] if ontology else []))
 
-        return self._build_rows(entries)
+        return self._build_rows(entries, allow_selection=False)
 
     def _build_term_rows(self, term_results):
-        return self._build_rows(term_results)
+        return self._build_rows(term_results, allow_selection=True)
 
-    @staticmethod
-    def _build_rows(entries):
+    def _build_rows(self, entries, allow_selection: bool):
         rows = []
+        group_index = 0
         for metadata, term, ontology in entries:
             ontology_display = ""
-            if ontology:
-                if ontology.value:
-                    ontology_display = f"{ontology.id}: {ontology.value}"
+            candidates = ontology or []
+            if not candidates:
+                candidates = [None]
+            group_id = f"{metadata.code}:{term}"
+            selected_value = self._user_selection.get(group_id, "")
+            choice_options = []
+            if allow_selection and ontology:
+                for candidate in ontology:
+                    label = candidate.value or candidate.base_uri or candidate.id
+                    value = candidate.base_uri or candidate.value or candidate.id
+                    if value:
+                        choice_options.append({"label": label, "value": value})
+            for idx, candidate in enumerate(candidates):
+                if candidate:
+                    if candidate.value:
+                        ontology_display = (
+                            f"{candidate.id}: {candidate.value}"
+                        )
+                    else:
+                        ontology_display = candidate.id
                 else:
-                    ontology_display = ontology.id
+                    ontology_display = ""
 
-            rows.append({
-                "code": metadata.code,
-                "subdomain": metadata.subdomain,
-                "value": term,
-                "ontology": ontology_display,
-                "synonyms": ", ".join(ontology.synonyms)
-                if ontology and ontology.synonyms else "",
-                "iri": ontology.base_uri if ontology else "",
-            })
+                rows.append({
+                    "code": metadata.code,
+                    "subdomain": metadata.subdomain,
+                    "value": term,
+                    "ontology": ontology_display,
+                    "synonyms": ", ".join(candidate.synonyms)
+                    if candidate and candidate.synonyms else "",
+                    "iri": candidate.base_uri if candidate else "",
+                    "group_index": group_index,
+                    "selection_group": group_id,
+                    "selection_options": choice_options
+                    if allow_selection and idx == 0 else [],
+                    "selected_value": selected_value,
+                })
+
+            group_index += 1
 
         return rows

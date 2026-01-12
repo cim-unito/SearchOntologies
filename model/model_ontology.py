@@ -41,8 +41,8 @@ class ModelOntology:
         Returns a list of (metadata, term, ontology) tuples.
         """
         metadata_dict = self._metadata_container.get_cells()
-        results: list[tuple[Metadata, str, Ontology]] = []
-        cache: dict[tuple[str, str], dict | None] = {}
+        results: list[tuple[Metadata, str, list[Ontology]]] = []
+        cache: dict[tuple[str, str], list[dict]] = {}
         for meta in metadata_dict.values():
             domain = meta.get_domain()
             cell_value = meta.get_cell_value()
@@ -65,18 +65,17 @@ class ModelOntology:
                         cell_value=term,
                         ontology_id=ontology_id
                     )
-                result = cache[cache_key]
-                if result is None:
-                    ontology = Ontology(id=ontology_id)
-                else:
-                    ontology = Ontology(
+                result_items = cache[cache_key]
+                candidates = []
+                for item in result_items:
+                    candidates.append(Ontology(
                         id=ontology_id,
-                        value=result.get("notation", ""),
-                        base_uri=result.get("purl", ""),
-                        synonyms=result.get("synonyms", []),
-                    )
+                        value=item.get("notation", ""),
+                        base_uri=item.get("purl", ""),
+                        synonyms=item.get("synonyms", []),
+                    ))
 
-                results.append((meta, term, ontology))
+                results.append((meta, term, candidates))
 
         return results
 
