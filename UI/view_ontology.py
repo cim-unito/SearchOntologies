@@ -9,13 +9,13 @@ class ViewOntology(ft.Control):
     OUTLINE_VARIANT_COLOR = "#C4D2D0"
 
     COLUMN_WIDTHS = {
-        "code": 90,
-        "subdomain": 120,
-        "value": 160,
-        "ontology": 150,
-        "synonyms": 180,
-        "iri": 240,
-        "choice": 180,
+        "choice": 60,
+        "code": 70,
+        "subdomain": 100,
+        "value": 140,
+        "ontology": 120,
+        "synonyms": 140,
+        "iri": 180
     }
 
     def __init__(self, page: ft.Page):
@@ -72,13 +72,13 @@ class ViewOntology(ft.Control):
             ft.DataRow(
                 color=self._row_color(row),
                 cells=[
+                    self._build_cell(row, "choice"),
                     self._build_cell(row.get("code", ""), "code"),
                     self._build_cell(row.get("subdomain", ""), "subdomain"),
                     self._build_cell(row.get("value", ""), "value"),
                     self._build_cell(row.get("ontology", ""), "ontology"),
                     self._build_cell(row.get("synonyms", ""), "synonyms"),
                     self._build_cell(row.get("iri", ""), "iri"),
-                    self._build_cell(row, "choice"),
                 ]
             )
 
@@ -155,13 +155,13 @@ class ViewOntology(ft.Control):
         # metadata table
         self.tbl_metadata = ft.DataTable(
             columns=[
+                self._build_column("", "choice"),
                 self._build_column("Code", "code"),
                 self._build_column("Subdomain", "subdomain"),
                 self._build_column("Value", "value"),
                 self._build_column("Ontology", "ontology"),
                 self._build_column("Synonyms", "synonyms"),
                 self._build_column("IRI", "iri"),
-                self._build_column("Choice", "choice"),
             ],
             rows=[],
             data_row_min_height=52,
@@ -339,7 +339,7 @@ class ViewOntology(ft.Control):
         group_id = row.get("selection_group")
         checkbox = ft.Checkbox(
             value=option["value"] == selected_value,
-            label=option.get("label") or option.get("value") or "",
+            label="",
             data=option["value"],
         )
 
