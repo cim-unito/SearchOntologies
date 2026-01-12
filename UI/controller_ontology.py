@@ -57,23 +57,22 @@ class ControllerOntology:
             self._view.create_alert(str(exc))
             return []
 
-    def export_csvs(self, directory_path: str):
-        """Export ontology codes and terms to CSV files."""
+    def export_csv(self, directory_path: str):
+        """Export ontology codes to a single CSV file."""
         if not directory_path:
             self._view.create_alert("No folder selected!")
             return
-        codes_path, terms_path = self._model.export_csvs(
+        export_path = self._model.export_csv(
             directory_path, self._user_selection
         )
 
-        if not codes_path and not terms_path:
+        if not export_path:
             self._view.create_alert("No metadata terms available to export.")
             return
 
         self._view.create_alert(
-            "CSV files saved:\n"
-            f"- {codes_path}\n"
-            f"- {terms_path}"
+            "CSV file saved:\n"
+            f"- {export_path}"
         )
 
     def _build_metadata_rows(self,

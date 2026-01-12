@@ -40,6 +40,13 @@ class MetadataContainer:
         metadata = self._require_metadata(code)
         return metadata.cell_value
 
+    def get_dataset_id(self) -> str:
+        for metadata in self.get_cells().values():
+            domain = getattr(metadata, "domain", None)
+            if domain and domain.id.casefold() == "dataset":
+                return getattr(metadata, "cell_value", "") or ""
+        return ""
+
     def codes(self) -> list[str]:
         """Return the list of available metadata codes."""
         return list(self.cells.keys())

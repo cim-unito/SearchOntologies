@@ -34,34 +34,28 @@ class ModelOntology:
             self._metadata_container,
             file_path)
 
-    def export_csvs(self, directory_path: str,
-                    user_selection: dict[str, str]):
-        """Export ontology selections and terms to CSV files."""
+    def export_csv(self, directory_path: str,
+                   user_selection: dict[str, str]):
+        """Export ontology selections to a single CSV file."""
         metadata_container = self._metadata_container
-        dataset_id = self._get_dataset_id(metadata_container)
-        code_rows, term_rows = self._build_export_rows(
+        dataset_id = metadata_container.get_dataset_id()
+        fieldnames, row = self._build_export_row(
             metadata_container, user_selection, dataset_id
         )
 
-        if not code_rows and not term_rows:
-            return None, None
+        if not fieldnames:
+            return None
 
         directory = Path(directory_path)
-        codes_path = directory / "ontology_codes.csv"
-        terms_path = directory / "ontology_terms.csv"
+        export_path = directory / "ontology_export.csv"
 
         self._metadata_file_io.write_csv(
-            codes_path,
-            ["DatasetId", "OntologyDomain", "OntologyCode"],
-            code_rows,
-        )
-        self._metadata_file_io.write_csv(
-            terms_path,
-            ["DatasetId", "OntologyDomain", "OntologyTerm"],
-            term_rows,
+            export_path,
+            fieldnames,
+            [row],
         )
 
-        return codes_path, terms_path
+        return export_path
 
     def search_terms_from_metadata(self) -> list[
         tuple[Metadata, str, list[Ontology]]]:
@@ -116,19 +110,25 @@ class ModelOntology:
         parts = [part.strip() for part in cell_value.split(",")]
         return [part for part in parts if part]
 
-    def _build_export_rows(self, metadata_container,
-                           user_selection: dict[str, str],
-                           dataset_id: str):
-        code_rows = []
-        term_rows = []
+    def _build_export_row(self, metadata_container,
+                          user_selection: dict[str, str],
+                          dataset_id: str):
+        domain_order = []
+        domain_values = {}
         metadata_container_sorted = metadata_container.get_cells_sorted()
+        entry_index = 0
 
-        for metadata in metadata_container_sorted.values():
+        for metadata in metadata_container.get_cells().values():
             domain = getattr(metadata, "domain", None)
             if not domain or not domain.ontology:
                 continue
             if domain.id.casefold() == "dataset":
                 continue
+
+            ontology_domain = self._format_ontology_domain(metadata)
+            if ontology_domain not in domain_values:
+                domain_order.append(ontology_domain)
+                domain_values[ontology_domain] = []
 
             terms = self.split_terms(
                 getattr(metadata, "cell_value", "")
@@ -136,34 +136,40 @@ class ModelOntology:
             if not terms:
                 continue
 
-            ontology_domain = self._format_ontology_domain(metadata)
             for term in terms:
-                group_id = f"{metadata.code}:{term}"
+                group_id = self._build_group_id(metadata, term, entry_index)
+                entry_index += 1
                 ontology_code = user_selection.get(group_id, "")
-                code_rows.append({
-                    "DatasetId": dataset_id,
-                    "OntologyDomain": ontology_domain,
-                    "OntologyCode": ontology_code,
-                })
-                term_rows.append({
-                    "DatasetId": dataset_id,
-                    "OntologyDomain": ontology_domain,
-                    "OntologyTerm": term,
-                })
+                if ontology_code:
+                    domain_values[ontology_domain].append(ontology_code)
 
-        return code_rows, term_rows
+        if not domain_order:
+            return [], {}
 
-    def _get_dataset_id(self, metadata_container) -> str:
-        for metadata in metadata_container.get_cells().values():
-            domain = getattr(metadata, "domain", None)
-            if domain and domain.id.casefold() == "dataset":
-                return getattr(metadata, "cell_value", "") or ""
-        return ""
+        row = {"DatasetId": dataset_id}
+        for ontology_domain in domain_order:
+            row[ontology_domain] = self._format_cell_value(
+                domain_values.get(ontology_domain, [])
+            )
+
+        return ["DatasetId", *domain_order], row
 
     def _format_ontology_domain(self, metadata) -> str:
         ontology_id = getattr(metadata.domain.ontology, "id", "") or ""
         domain_value = metadata.subdomain or metadata.domain.id
         return f"{self._pascal_case(ontology_id)}{self._pascal_case(domain_value)}"
+
+    @staticmethod
+    def _build_group_id(metadata, term: str, index: int) -> str:
+        safe_term = term if term else "<empty>"
+        return f"{metadata.code}:{safe_term}:{index}"
+
+    @staticmethod
+    def _format_cell_value(values: list[str]) -> str:
+        cleaned = [value for value in values if value]
+        if not cleaned:
+            return "NULL"
+        return ", ".join(cleaned)
 
     @staticmethod
     def _pascal_case(value: str) -> str:
