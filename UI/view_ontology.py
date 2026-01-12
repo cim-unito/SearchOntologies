@@ -314,7 +314,7 @@ class ViewOntology(ft.Control):
     def on_directory_picked(self, e: ft.FilePickerResultEvent):
         """Handle directory selection for CSV export."""
         if e.path:
-            self._controller.export_csvs(e.path)
+            self._controller.export_csv(e.path)
         else:
             self.create_alert("No folder selected!")
 
