@@ -159,7 +159,7 @@ class ViewOntology(ft.Control):
                 self._build_column("Ontology", "ontology"),
                 self._build_column("Synonyms", "synonyms"),
                 self._build_column("IRI", "iri"),
-                self._build_column("User choice", "choice"),
+                self._build_column("Choice", "choice"),
             ],
             rows=[],
             data_row_min_height=52,
@@ -229,7 +229,10 @@ class ViewOntology(ft.Control):
                             padding=8,
                             content=ft.Column(
                                 [
-                                    self.tbl_metadata,
+                                    ft.Row(
+                                        [self.tbl_metadata],
+                                        scroll=ft.ScrollMode.AUTO,
+                                    ),
                                     self.empty_metadata_placeholder,
                                 ],
                                 scroll=ft.ScrollMode.AUTO,
@@ -329,20 +332,34 @@ class ViewOntology(ft.Control):
         options = row.get("selection_options") or []
         if not options:
             return ft.Text("")
-        dropdown_options = [
-            ft.dropdown.Option(option["value"], option["label"])
-            for option in options
-        ]
-        return ft.Dropdown(
-            value=row.get("selected_value") or None,
-            options=dropdown_options,
-            hint_text="Select",
-            on_change=lambda e, group=row.get("selection_group"): (
-                self._controller.set_user_selection(group, e.control.value)
-            ),
-            dense=True,
-        )
+        if len(options) == 1:
+            option = options[0]
+            return ft.Text(option.get("label") or option.get("value") or "")
 
+        selected_value = row.get("selected_value") or None
+        checkboxes: list[ft.Checkbox] = []
+
+        def on_change(e, group=row.get("selection_group")):
+            if not e.control.value:
+                self._controller.set_user_selection(group, "")
+                return
+
+            for checkbox in checkboxes:
+                checkbox.value = checkbox is e.control
+            self._controller.set_user_selection(group, e.control.data)
+            for checkbox in checkboxes:
+                checkbox.update()
+
+        for option in options:
+            checkbox = ft.Checkbox(
+                value=option["value"] == selected_value,
+                label=option["label"],
+                data=option["value"],
+                on_change=on_change,
+            )
+            checkboxes.append(checkbox)
+
+        return ft.Column(checkboxes, spacing=0)
     def _row_color(self, row: dict) -> str:
         group_index = row.get("group_index")
         if group_index is None:
