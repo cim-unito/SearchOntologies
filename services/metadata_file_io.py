@@ -72,6 +72,32 @@ class MetadataFileIO:
 
         return metadata_container
 
+    def write_ontology_export(self, directory: Path,
+                              fieldnames: list[str],
+                              rows: list[dict]) -> Path:
+        export_path = directory / "ontology_export.csv"
+        self.write_csv(export_path, fieldnames, rows)
+        return export_path
+
+    def write_synonyms_export(self, directory: Path,
+                              rows: list[dict]) -> Path:
+        export_path = directory / "ontology_export_synonyms.csv"
+        self.write_csv(export_path, ["OntologyCode", "Synonyms"], rows)
+        return export_path
+
+    def write_ontology_export_excel(self, directory: Path,
+                                    fieldnames: list[str],
+                                    rows: list[dict]) -> Path:
+        export_path = directory / "ontology_export.xlsx"
+        self._write_excel(export_path, fieldnames, rows)
+        return export_path
+
+    def write_synonyms_export_excel(self, directory: Path,
+                                    rows: list[dict]) -> Path:
+        export_path = directory / "ontology_export_synonyms.xlsx"
+        self._write_excel(export_path, ["OntologyCode", "Synonyms"], rows)
+        return export_path
+
     @staticmethod
     def write_csv(file_path: Path, fieldnames: list[str],
                   rows: list[dict]):
@@ -80,6 +106,19 @@ class MetadataFileIO:
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(rows)
+
+    @staticmethod
+    def _write_excel(file_path: Path, fieldnames: list[str],
+                     rows: list[dict]):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Export"
+        sheet.append(fieldnames)
+        for row in rows:
+            sheet.append([row.get(field, "") for field in fieldnames])
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        workbook.save(file_path)
+        workbook.close()
 
     @staticmethod
     def _normalize(value: object) -> str | None:

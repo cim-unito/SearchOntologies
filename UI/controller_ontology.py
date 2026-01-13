@@ -7,6 +7,7 @@ from config.config import ConfigError
 from model.metadata import Metadata
 from model.metadata_container import MetadataContainer
 from model.ontology import Ontology
+from model.ontology_selection import OntologySelection
 
 
 class ControllerOntology:
@@ -17,10 +18,17 @@ class ControllerOntology:
         # persistence
         self._model = model
         self._user_selection: dict[str, str] = {}
+        self._selection_candidates: dict[str, dict[str, OntologySelection]] = {}
+        self._selection_details: dict[str, OntologySelection] = {}
 
     def set_user_selection(self, group_id: str, value: str):
         """Store the user's selection for a given row group."""
         self._user_selection[group_id] = value
+        selection = self._selection_candidates.get(group_id, {}).get(value)
+        if selection:
+            self._selection_details[group_id] = selection
+        else:
+            self._selection_details.pop(group_id, None)
 
     def get_metadata_excel_file(self,
                                 metadata_xlsx_file: list[
@@ -62,17 +70,20 @@ class ControllerOntology:
         if not directory_path:
             self._view.create_alert("No folder selected!")
             return
-        export_path = self._model.export_csv(
-            directory_path, self._user_selection
+        export_paths = self._model.export_csv(
+            directory_path,
+            self._user_selection,
+            list(self._selection_details.values()),
         )
 
-        if not export_path:
+        if not export_paths:
             self._view.create_alert("No metadata terms available to export.")
             return
 
+        exported_files = "\n".join(f"- {path}" for path in export_paths)
         self._view.create_alert(
-            "CSV file saved:\n"
-            f"- {export_path}"
+            "CSV files saved:\n"
+            f"{exported_files}"
         )
 
     def _build_metadata_rows(self,
@@ -136,10 +147,15 @@ class ControllerOntology:
         """Create UI table row dictionaries for metadata or term results."""
         rows = []
         group_index = 0
+        if allow_selection:
+            self._selection_candidates = {}
+            self._selection_details = {}
         for index, (metadata, term, ontology) in enumerate(entries):
             candidates = self._normalize_candidates(ontology)
             group_id = self._model.build_group_id(metadata, term, index)
             default_value = self._user_selection.get(group_id, "")
+            if allow_selection:
+                self._selection_candidates[group_id] = {}
             for candidate in candidates:
                 selection_option = None
                 if allow_selection and candidate:
@@ -148,6 +164,12 @@ class ControllerOntology:
                     if value:
                         selection_option = {"label": label or value,
                                             "value": value}
+                        selection_details = self._build_selection_details(
+                            term, candidate
+                        )
+                        if selection_details:
+                            self._selection_candidates[group_id][
+                                value] = selection_details
 
                 rows.append({
                     "code": metadata.code,
@@ -164,9 +186,46 @@ class ControllerOntology:
                     "selected_value": default_value,
                 })
 
+            if allow_selection and default_value:
+                selection = self._selection_candidates[group_id].get(
+                    default_value
+                )
+                if selection:
+                    self._selection_details[group_id] = selection
+
             group_index += 1
 
         return rows
+    @staticmethod
+    def _build_selection_details(
+            term: str,
+            candidate: Ontology,
+    ) -> OntologySelection | None:
+        code = ControllerOntology._candidate_value(candidate)
+        if not code:
+            return None
+        synonyms = ControllerOntology._merge_synonyms(
+            term,
+            getattr(candidate, "synonyms", []),
+        )
+        return OntologySelection(code=code, synonyms=synonyms)
+
+    @staticmethod
+    def _merge_synonyms(term: str, synonyms: list[str]) -> list[str]:
+        merged = []
+        seen = set()
+        if term:
+            merged.append(term)
+            seen.add(term.casefold())
+        for synonym in synonyms or []:
+            if not synonym:
+                continue
+            key = synonym.casefold()
+            if key in seen:
+                continue
+            merged.append(synonym)
+            seen.add(key)
+        return merged
 
     @staticmethod
     def _normalize_candidates(ontology):

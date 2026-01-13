@@ -3,6 +3,7 @@ from pathlib import Path
 from model.bio_portal_client import BioPortalClient
 from model.metadata import Metadata
 from model.ontology import Ontology
+from model.ontology_selection import OntologySelection
 from persistence.domain_ontology_dao import DomainOntologyDao
 from persistence.metadata_mapping_dao import MetadataMappingDao
 from services.metadata_file_io import MetadataFileIO
@@ -34,29 +35,56 @@ class ModelOntology:
             self._metadata_container,
             file_path)
 
-    def export_csv(self, directory_path: str,
-                   user_selection: dict[str, str],
-                   empty_value: str = ""):
-        """Export ontology selections to a single CSV file."""
+    def export_csv(
+            self,
+            directory_path: str,
+            user_selection: dict[str, str],
+            selection_details: list[OntologySelection] | None = None,
+            empty_value: str = "",
+    ) -> list[Path]:
+        """Export ontology selections to CSV files."""
         metadata_container = self._metadata_container
         dataset_id = metadata_container.get_dataset_id()
         fieldnames, row = self._build_export_row(
             metadata_container, user_selection, dataset_id, empty_value
         )
-
-        if not fieldnames:
-            return None
-
         directory = Path(directory_path)
-        export_path = directory / "ontology_export.csv"
+        export_paths: list[Path] = []
+        if fieldnames:
+            export_path = self._metadata_file_io.write_ontology_export(
+                directory,
+                fieldnames,
+                [row],
+            )
+            export_paths.append(export_path)
 
-        self._metadata_file_io.write_csv(
-            export_path,
-            fieldnames,
-            [row],
+            export_paths.append(
+                self._metadata_file_io.write_ontology_export_excel(
+                    directory,
+                    fieldnames,
+                    [row],
+                )
+            )
+
+        selection_details = selection_details or []
+        selection_rows = self._build_selection_rows(
+            selection_details,
+            empty_value,
         )
+        if selection_rows:
+            synonyms_path = self._metadata_file_io.write_synonyms_export(
+                directory,
+                selection_rows,
+            )
+            export_paths.append(synonyms_path)
+            export_paths.append(
+                self._metadata_file_io.write_synonyms_export_excel(
+                    directory,
+                    selection_rows,
+                )
+            )
 
-        return export_path
+        return export_paths
 
     def search_terms_from_metadata(self) -> list[
         tuple[Metadata, str, list[Ontology]]]:
@@ -160,6 +188,24 @@ class ModelOntology:
             )
 
         return ["DatasetId", *domain_order], row
+
+    def _build_selection_rows(
+            self,
+            selection_details: list[OntologySelection],
+            empty_value: str,
+    ) -> list[dict]:
+        rows = []
+        for selection in selection_details:
+            if not selection.code:
+                continue
+            rows.append({
+                "OntologyCode": selection.code,
+                "Synonyms": self._format_cell_value(
+                    selection.synonyms,
+                    empty_value,
+                ),
+            })
+        return rows
 
     def _format_ontology_domain(self, metadata) -> str:
         ontology_id = getattr(metadata.domain.ontology, "id", "") or ""
