@@ -4,6 +4,7 @@
   "anatomy": "UBERON",
   "cell_line": "CL",
   "genomic": "NCIT",
+  "gene": "GO",
   "imaging": "NCIT",
   "experimental_conditions": "OBI",
   "biological_biomedical_resource": "CMO",

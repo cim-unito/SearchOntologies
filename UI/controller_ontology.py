@@ -86,6 +86,10 @@ class ControllerOntology:
             if metadata is None:
                 continue
 
+            domain = metadata.get_domain()
+            if domain.id.casefold() == "dataset":
+                continue
+
             ontology = metadata.domain.ontology if getattr(metadata, "domain",
                                                            None) else None
             terms = self._model.split_terms(
@@ -147,7 +151,7 @@ class ControllerOntology:
 
                 rows.append({
                     "code": metadata.code,
-                    "subdomain": metadata.subdomain,
+                    "domain": metadata.subdomain,
                     "value": term,
                     "ontology": self._format_ontology_display(candidate),
                     "synonyms": ", ".join(getattr(candidate, "synonyms", []))

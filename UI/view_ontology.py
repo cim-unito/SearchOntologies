@@ -10,7 +10,7 @@ class ViewOntology(ft.Control):
 
     COLUMN_WIDTHS = {
         "code": 70,
-        "domain": 100,
+        "domain": 120,
         "value": 140,
         "ontology": 120,
         "synonyms": 140,
