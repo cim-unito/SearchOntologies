@@ -59,6 +59,7 @@ class ControllerOntology:
 
     def lookup_term(self, e: ft.ControlEvent) -> list:
         """BioPortal lookups from the UI."""
+        self._view.set_search_loading(True)
         try:
             term_results = self._model.search_terms_from_metadata()
             rows = self._build_term_rows(term_results)
@@ -68,6 +69,8 @@ class ControllerOntology:
         except (ValueError, ConfigError) as exc:
             self._view.create_alert(str(exc))
             return []
+        finally:
+            self._view.set_search_loading(False)
 
     def export_csv(self, directory_path: str):
         """Export ontology codes to a single CSV file."""

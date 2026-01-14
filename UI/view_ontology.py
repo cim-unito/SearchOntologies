@@ -45,6 +45,9 @@ class ViewOntology(ft.Control):
         self.card_metadata_table = None
         self._dlg_reset = None
         self._choice_groups: dict[str, list[ft.Checkbox]] = {}
+        self.search_progress = None
+        self.search_status_text = None
+        self.search_status_row = None
 
     def load_interface(self):
         """
@@ -207,6 +210,24 @@ class ViewOntology(ft.Control):
             tooltip="Performs ontology searches on uploaded metadata",
         )
 
+        # search progress indicator
+        self.search_progress = ft.ProgressBar(
+            width=180,
+            value=None,
+            color=self.PRIMARY_CONTAINER_COLOR,
+        )
+        self.search_status_text = ft.Text(
+            "Searching ontologies...",
+            size=12,
+            color=self.PRIMARY_COLOR,
+        )
+        self.search_status_row = ft.Row(
+            controls=[self.search_progress, self.search_status_text],
+            spacing=12,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            visible=False,
+        )
+
         # chip records
         self.chip_metadata_count = ft.Chip(
             label=ft.Text("0 elements"),
@@ -260,6 +281,7 @@ class ViewOntology(ft.Control):
                         ),
                         ft.Divider(height=12, thickness=1,
                                    color=self.OUTLINE_VARIANT_COLOR),
+                        self.search_status_row,
                         ft.Container(
                             bgcolor=self.SURFACE_COLOR,
                             border_radius=12,
@@ -376,7 +398,19 @@ class ViewOntology(ft.Control):
         self.empty_metadata_placeholder.visible = True
         self.chip_project_id.label = ft.Text("ID project: —")
         self.chip_metadata_count.label = ft.Text("0 elements")
+        if self.search_status_row:
+            self.search_status_row.visible = False
+        if self.btn_search:
+            self.btn_search.disabled = False
         self._choice_groups = {}
+        self.update_page()
+
+    def set_search_loading(self, is_loading: bool) -> None:
+        """Toggle the search progress indicator and search button state."""
+        if self.search_status_row:
+            self.search_status_row.visible = is_loading
+        if self.btn_search:
+            self.btn_search.disabled = is_loading
         self.update_page()
 
     def on_directory_picked(self, e: ft.FilePickerResultEvent):
