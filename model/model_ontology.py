@@ -195,14 +195,19 @@ class ModelOntology:
             selection_details: list[OntologySelection],
             empty_value: str,
     ) -> list[dict]:
-        rows = []
+        grouped: dict[str, list[str]] = {}
         for selection in selection_details:
             if not selection.code:
                 continue
+            grouped.setdefault(selection.code, [])
+            grouped[selection.code].extend(selection.synonyms or [])
+
+        rows = []
+        for code, synonyms in grouped.items():
             rows.append({
-                "OntologyCode": selection.code,
+                "OntologyCode": code,
                 "Synonyms": self._format_cell_value(
-                    selection.synonyms,
+                    self._unique_synonyms(synonyms),
                     empty_value,
                 ),
             })
@@ -268,6 +273,20 @@ class ModelOntology:
         if not cleaned:
             return "NULL"
         return ";".join(cleaned) if cleaned else empty_value
+
+    @staticmethod
+    def _unique_synonyms(values: list[str]) -> list[str]:
+        unique = []
+        seen = set()
+        for value in values or []:
+            if not value:
+                continue
+            key = value.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(value)
+        return unique
 
     @staticmethod
     def _pascal_case(value: str) -> str:
