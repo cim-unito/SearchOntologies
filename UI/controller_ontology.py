@@ -72,15 +72,19 @@ class ControllerOntology:
         finally:
             self._view.set_search_loading(False)
 
-    def export_csv(self, directory_path: str):
-        """Export ontology codes to a single CSV file."""
+    def export_csv(self, directory_path: str, export_format: str = "csv"):
+        """Export ontology codes to a file in the selected format."""
         if not directory_path:
             self._view.create_alert("No folder selected!")
+            return
+        if export_format not in {"csv", "excel"}:
+            self._view.create_alert("Unsupported export format selected.")
             return
         export_paths = self._model.export_csv(
             directory_path,
             self._user_selection,
             list(self._selection_details.values()),
+            export_format=export_format,
         )
 
         if not export_paths:

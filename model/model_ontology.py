@@ -44,9 +44,10 @@ class ModelOntology:
             directory_path: str,
             user_selection: dict[str, str],
             selection_details: list[OntologySelection] | None = None,
+            export_format: str = "csv",
             empty_value: str = "",
     ) -> list[Path]:
-        """Export ontology selections to CSV files."""
+        """Export ontology selections to CSV or Excel files."""
         metadata_container = self._metadata_container
         dataset_id = metadata_container.get_dataset_id()
         fieldnames, row = self._build_export_row(
@@ -55,18 +56,12 @@ class ModelOntology:
         directory = Path(directory_path)
         export_paths: list[Path] = []
         if fieldnames:
-            export_path = self._metadata_file_io.write_ontology_export(
-                directory,
-                fieldnames,
-                [row],
-            )
-            export_paths.append(export_path)
-
-            export_paths.append(
-                self._metadata_file_io.write_ontology_export_excel(
+            export_paths.extend(
+                self._write_ontology_export(
                     directory,
                     fieldnames,
                     [row],
+                    export_format,
                 )
             )
 
@@ -76,15 +71,11 @@ class ModelOntology:
             empty_value,
         )
         if selection_rows:
-            synonyms_path = self._metadata_file_io.write_synonyms_export(
-                directory,
-                selection_rows,
-            )
-            export_paths.append(synonyms_path)
-            export_paths.append(
-                self._metadata_file_io.write_synonyms_export_excel(
+            export_paths.extend(
+                self._write_synonyms_export(
                     directory,
                     selection_rows,
+                    export_format,
                 )
             )
 
@@ -214,6 +205,49 @@ class ModelOntology:
                 ),
             })
         return rows
+
+    def _write_ontology_export(
+            self,
+            directory: Path,
+            fieldnames: list[str],
+            rows: list[dict],
+            export_format: str,
+    ) -> list[Path]:
+        if export_format == "excel":
+            return [
+                self._metadata_file_io.write_ontology_export_excel(
+                    directory,
+                    fieldnames,
+                    rows,
+                )
+            ]
+        return [
+            self._metadata_file_io.write_ontology_export(
+                directory,
+                fieldnames,
+                rows,
+            )
+        ]
+
+    def _write_synonyms_export(
+            self,
+            directory: Path,
+            rows: list[dict],
+            export_format: str,
+    ) -> list[Path]:
+        if export_format == "excel":
+            return [
+                self._metadata_file_io.write_synonyms_export_excel(
+                    directory,
+                    rows,
+                )
+            ]
+        return [
+            self._metadata_file_io.write_synonyms_export(
+                directory,
+                rows,
+            )
+        ]
 
     def _format_ontology_domain(self, metadata) -> str:
         ontology_id = getattr(metadata.domain.ontology, "id", "") or ""

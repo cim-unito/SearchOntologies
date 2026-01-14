@@ -42,6 +42,7 @@ class ViewOntology(ft.Control):
         self.btn_reset_app = None
         self.file_picker = None
         self.directory_picker = None
+        self.dd_export_format = None
         self.tbl_metadata = None
         self.btn_search = None
         self.chip_project_id = None
@@ -49,6 +50,8 @@ class ViewOntology(ft.Control):
         self.empty_metadata_placeholder = None
         self.card_metadata_table = None
         self._dlg_reset = None
+        self._dlg_export = None
+        self._pending_export_format = "csv"
         self._choice_groups: dict[str, list[ft.Checkbox]] = {}
         self.search_progress = None
         self.search_status_text = None
@@ -177,10 +180,19 @@ class ViewOntology(ft.Control):
         # button to export CSVs
         self.directory_picker = ft.FilePicker()
         self._page.overlay.append(self.directory_picker)
+        self.dd_export_format = ft.Dropdown(
+            label="Export format",
+            value="csv",
+            options=[
+                ft.dropdown.Option("csv", "CSV (.csv)"),
+                ft.dropdown.Option("excel", "Excel (.xlsx)"),
+            ],
+            width=220,
+        )
         self.btn_export_csv = ft.FilledButton(
-            text="Save CSVs",
-            icon=ft.Icons.SAVE_ALT,
-            tooltip="Save ontology CSVs to a selected folder",
+            text="Download",
+            icon=ft.Icons.DOWNLOAD,
+            tooltip="Download ontology exports in CSV or Excel format",
             bgcolor=self.BUTTON_BG_COLOR,
             color=self.BUTTON_TEXT_COLOR,
             expand=True
@@ -359,9 +371,7 @@ class ViewOntology(ft.Control):
         )
         self.btn_search.on_click = self._controller.lookup_term
         self.directory_picker.on_result = self.on_directory_picked
-        self.btn_export_csv.on_click = lambda \
-            _: self.directory_picker.get_directory_path()
-
+        self.btn_export_csv.on_click = self.show_export_dialog
         self.btn_reset_app.on_click = self._controller.request_reset
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
@@ -420,6 +430,46 @@ class ViewOntology(ft.Control):
         self._choice_groups = {}
         self.update_page()
 
+    def show_export_dialog(self, _) -> None:
+        """Prompt the user for export format before choosing a folder."""
+        if self._dlg_export:
+            self._page.close(self._dlg_export)
+
+        def on_cancel(_):
+            self._page.close(self._dlg_export)
+
+        def on_confirm(_):
+            selected_format = (
+                self.dd_export_format.value
+                if self.dd_export_format
+                else "csv"
+            )
+            self._pending_export_format = selected_format or "csv"
+            self._page.close(self._dlg_export)
+            self.directory_picker.get_directory_path()
+
+        self._dlg_export = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Download ontology exports"),
+            content=ft.Column(
+                [
+                    ft.Text("Choose the format to download."),
+                    self.dd_export_format,
+                ],
+                tight=True,
+            ),
+            actions=[
+                ft.TextButton("Cancel", on_click=on_cancel),
+                ft.FilledButton(
+                    "Download",
+                    icon=ft.Icons.DOWNLOAD,
+                    on_click=on_confirm,
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self._page.open(self._dlg_export)
+
     def set_search_loading(self, is_loading: bool) -> None:
         """Toggle the search progress indicator and search button state."""
         if self.search_status_row:
@@ -429,9 +479,10 @@ class ViewOntology(ft.Control):
         self.update_page()
 
     def on_directory_picked(self, e: ft.FilePickerResultEvent):
-        """Handle directory selection for CSV export."""
+        """Handle directory selection for exports."""
         if e.path:
-            self._controller.export_csv(e.path)
+            export_format = self._pending_export_format or "csv"
+            self._controller.export_csv(e.path, export_format)
         else:
             self.create_alert("No folder selected!")
 
