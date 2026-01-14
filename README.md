@@ -22,7 +22,7 @@ A desktop application for mapping metadata fields from a structured Excel templa
 
 - Python 3.10+ (recommended)
 - BioPortal API key
-- Dependencies listed in `Requirements.txt`
+- Dependencies listed in `requirements.txt`
 
 ## Setup
 
