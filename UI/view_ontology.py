@@ -64,6 +64,7 @@ class ViewOntology(ft.Control):
         """
         self._configure_page()
         self._build_controls()
+        self._set_initial_button_state()
         self._bind_events()
         controls_layout = self._define_layout()
 
@@ -119,6 +120,36 @@ class ViewOntology(ft.Control):
 
     def update_page(self):
         self._page.update()
+
+    def _set_initial_button_state(self) -> None:
+        if self.btn_search:
+            self.btn_search.disabled = True
+        if self.btn_export_csv:
+            self.btn_export_csv.disabled = True
+        if self.btn_select_metadata_file:
+            self.btn_select_metadata_file.disabled = False
+        if self.btn_reset_app:
+            self.btn_reset_app.disabled = False
+
+    def set_metadata_loaded_state(self) -> None:
+        if self.btn_search:
+            self.btn_search.disabled = False
+        if self.btn_export_csv:
+            self.btn_export_csv.disabled = True
+        if self.btn_select_metadata_file:
+            self.btn_select_metadata_file.disabled = False
+        if self.btn_reset_app:
+            self.btn_reset_app.disabled = False
+        self.update_page()
+
+    def set_after_search_state(self) -> None:
+        if self.btn_select_metadata_file:
+            self.btn_select_metadata_file.disabled = True
+        if self.btn_export_csv:
+            self.btn_export_csv.disabled = False
+        if self.btn_reset_app:
+            self.btn_reset_app.disabled = False
+        self.update_page()
 
     def set_controller(self, controller):
         self._controller = controller
@@ -425,8 +456,7 @@ class ViewOntology(ft.Control):
         self.chip_metadata_count.label = ft.Text("0 elements")
         if self.search_status_row:
             self.search_status_row.visible = False
-        if self.btn_search:
-            self.btn_search.disabled = False
+        self._set_initial_button_state()
         self._choice_groups = {}
         self.update_page()
 

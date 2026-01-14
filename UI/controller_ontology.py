@@ -56,9 +56,11 @@ class ControllerOntology:
             self._build_metadata_rows(metadata_container),
             dataset_id,
         )
+        self._view.set_metadata_loaded_state()
 
     def lookup_term(self, e: ft.ControlEvent) -> list:
         """BioPortal lookups from the UI."""
+        self._view.set_after_search_state()
         self._view.set_search_loading(True)
         try:
             term_results = self._model.search_terms_from_metadata()
