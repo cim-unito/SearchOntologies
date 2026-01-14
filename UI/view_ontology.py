@@ -9,9 +9,6 @@ class ViewOntology(ft.Control):
     OUTLINE_VARIANT_COLOR = "#C4D2D0"
     BUTTON_BG_COLOR = "#5C9792"
     BUTTON_TEXT_COLOR = "#FFFFFF"
-    BUTTON_BG_COLOR_1 = "#6FAAA5"
-    BUTTON_BG_COLOR_2 = "#5C9792"
-    BUTTON_BG_COLOR_3 = "#4C8883"
 
     COLUMN_WIDTHS = {
         "code": 70,
@@ -122,24 +119,24 @@ class ViewOntology(ft.Control):
         self._page.update()
 
     def _set_initial_button_state(self) -> None:
+        if self.btn_select_metadata_file:
+            self.btn_select_metadata_file.disabled = False
+        if self.btn_export_csv:
+            self.btn_export_csv.disabled = True
+        if self.btn_reset_app:
+            self.btn_reset_app.disabled = False
         if self.btn_search:
             self.btn_search.disabled = True
-        if self.btn_export_csv:
-            self.btn_export_csv.disabled = True
-        if self.btn_select_metadata_file:
-            self.btn_select_metadata_file.disabled = False
-        if self.btn_reset_app:
-            self.btn_reset_app.disabled = False
 
     def set_metadata_loaded_state(self) -> None:
-        if self.btn_search:
-            self.btn_search.disabled = False
+        if self.btn_select_metadata_file:
+            self.btn_select_metadata_file.disabled = True
         if self.btn_export_csv:
             self.btn_export_csv.disabled = True
-        if self.btn_select_metadata_file:
-            self.btn_select_metadata_file.disabled = False
         if self.btn_reset_app:
             self.btn_reset_app.disabled = False
+        if self.btn_search:
+            self.btn_search.disabled = False
         self.update_page()
 
     def set_after_search_state(self) -> None:
@@ -149,6 +146,8 @@ class ViewOntology(ft.Control):
             self.btn_export_csv.disabled = False
         if self.btn_reset_app:
             self.btn_reset_app.disabled = False
+        if self.btn_search:
+            self.btn_search.disabled = True
         self.update_page()
 
     def set_controller(self, controller):
@@ -504,8 +503,6 @@ class ViewOntology(ft.Control):
         """Toggle the search progress indicator and search button state."""
         if self.search_status_row:
             self.search_status_row.visible = is_loading
-        if self.btn_search:
-            self.btn_search.disabled = is_loading
         self.update_page()
 
     def on_directory_picked(self, e: ft.FilePickerResultEvent):
