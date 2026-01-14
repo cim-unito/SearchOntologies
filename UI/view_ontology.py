@@ -34,13 +34,16 @@ class ViewOntology(ft.Control):
         self.img_founding_gide = None
         self.btn_select_metadata_file = None
         self.btn_export_csv = None
+        self.btn_reset_app = None
         self.file_picker = None
         self.directory_picker = None
         self.tbl_metadata = None
         self.btn_search = None
+        self.chip_project_id = None
         self.chip_metadata_count = None
         self.empty_metadata_placeholder = None
         self.card_metadata_table = None
+        self._dlg_reset = None
         self._choice_groups: dict[str, list[ft.Checkbox]] = {}
 
     def load_interface(self):
@@ -66,7 +69,11 @@ class ViewOntology(ft.Control):
 
         self._page.update()
 
-    def update_metadata_table(self, metadata_rows: list[dict]):
+    def update_metadata_table(
+            self,
+            metadata_rows: list[dict],
+            project_id: str | None = None,
+    ):
         """Populate the metadata table."""
         has_rows = bool(metadata_rows)
         self._choice_groups = {}
@@ -88,6 +95,8 @@ class ViewOntology(ft.Control):
         ]
         self.chip_metadata_count.label = ft.Text(
             f"{len(metadata_rows)} elements")
+        project_id_text = project_id or "—"
+        self.chip_project_id.label = ft.Text(f"ID project: {project_id_text}")
         self.tbl_metadata.visible = has_rows
         self.empty_metadata_placeholder.visible = not has_rows
         self.update_page()
@@ -152,6 +161,7 @@ class ViewOntology(ft.Control):
             text="Select metadata file",
             icon=ft.Icons.UPLOAD_FILE,
             tooltip="Select the metadata excel file to search for ontologies",
+            expand=True
         )
 
         # button to export CSVs
@@ -161,8 +171,16 @@ class ViewOntology(ft.Control):
             text="Save CSVs",
             icon=ft.Icons.SAVE_ALT,
             tooltip="Save ontology CSVs to a selected folder",
+            expand=True
         )
 
+        # button to reset the interface
+        self.btn_reset_app = ft.FilledButton(
+            text="Reset",
+            icon=ft.Icons.RESTART_ALT,
+            tooltip="Clear loaded data and reset the app",
+            expand=True
+        )
         # metadata table
         self.tbl_metadata = ft.DataTable(
             columns=[
@@ -196,7 +214,13 @@ class ViewOntology(ft.Control):
             bgcolor=self.PRIMARY_CONTAINER_COLOR,
             shape=ft.StadiumBorder(),
         )
-
+        # chip project id
+        self.chip_project_id = ft.Chip(
+            label=ft.Text("ID project: —"),
+            leading=ft.Icon(ft.Icons.BADGE, size=18),
+            bgcolor=self.PRIMARY_CONTAINER_COLOR,
+            shape=ft.StadiumBorder(),
+        )
         # empty table state
         self.empty_metadata_placeholder = ft.Column(
             [
@@ -228,6 +252,7 @@ class ViewOntology(ft.Control):
                                     weight=ft.FontWeight.W_600
                                 ),
                                 self.chip_metadata_count,
+                                self.chip_project_id,
                                 ft.Container(expand=True),
                                 self.btn_search,
                             ],
@@ -269,6 +294,7 @@ class ViewOntology(ft.Control):
                     controls=[
                         self.btn_select_metadata_file,
                         self.btn_export_csv,
+                        self.btn_reset_app,
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                     spacing=12,
@@ -299,6 +325,8 @@ class ViewOntology(ft.Control):
         self.btn_export_csv.on_click = lambda \
             _: self.directory_picker.get_directory_path()
 
+        self.btn_reset_app.on_click = self._controller.request_reset
+
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         """
         Handle file picker result, showing the table and delegating file
@@ -310,6 +338,46 @@ class ViewOntology(ft.Control):
             self._controller.get_metadata_excel_file(e.files)
         else:
             self.create_alert("No file selected!")
+
+    def show_reset_confirmation(self, on_confirm) -> None:
+        """Open a confirmation dialog before resetting the application."""
+        if self._dlg_reset:
+            self._page.close(self._dlg_reset)
+
+        def on_cancel(_):
+            self._page.close(self._dlg_reset)
+
+        def on_accept(_):
+            self._page.close(self._dlg_reset)
+            on_confirm()
+
+        self._dlg_reset = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Reset the application?"),
+            content=ft.Text(
+                "This will clear loaded metadata, selections, and results."
+            ),
+            actions=[
+                ft.TextButton("Cancel", on_click=on_cancel),
+                ft.FilledButton(
+                    "Reset",
+                    icon=ft.Icons.RESTART_ALT,
+                    on_click=on_accept,
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self._page.open(self._dlg_reset)
+
+    def reset_interface(self) -> None:
+        """Restore the interface to its initial empty state."""
+        self.tbl_metadata.rows = []
+        self.tbl_metadata.visible = False
+        self.empty_metadata_placeholder.visible = True
+        self.chip_project_id.label = ft.Text("ID project: —")
+        self.chip_metadata_count.label = ft.Text("0 elements")
+        self._choice_groups = {}
+        self.update_page()
 
     def on_directory_picked(self, e: ft.FilePickerResultEvent):
         """Handle directory selection for CSV export."""

@@ -56,6 +56,11 @@ class MetadataContainer:
         metadata = self._require_metadata(code)
         metadata.cell_value = value
 
+    def reset_values(self) -> None:
+        """Reset all stored metadata values to empty strings."""
+        for metadata in self.cells.values():
+            metadata.cell_value = ""
+
     def _require_metadata(self, code: str) -> Metadata:
         """Return metadata for ``code`` or raise ``KeyError`` if missing."""
         try:

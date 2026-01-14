@@ -51,15 +51,19 @@ class ControllerOntology:
             self._view.create_alert(str(exc))
             return
 
+        dataset_id = metadata_container.get_dataset_id()
         self._view.update_metadata_table(
-            self._build_metadata_rows(metadata_container))
+            self._build_metadata_rows(metadata_container),
+            dataset_id,
+        )
 
     def lookup_term(self, e: ft.ControlEvent) -> list:
         """BioPortal lookups from the UI."""
         try:
             term_results = self._model.search_terms_from_metadata()
             rows = self._build_term_rows(term_results)
-            self._view.update_metadata_table(rows)
+            dataset_id = self._model.get_dataset_id()
+            self._view.update_metadata_table(rows, dataset_id)
             return rows
         except (ValueError, ConfigError) as exc:
             self._view.create_alert(str(exc))
@@ -85,6 +89,18 @@ class ControllerOntology:
             "CSV files saved:\n"
             f"{exported_files}"
         )
+
+    def request_reset(self, e: ft.ControlEvent) -> None:
+        """Request a confirmation dialog before resetting the app."""
+        self._view.show_reset_confirmation(self.reset_state)
+
+    def reset_state(self) -> None:
+        """Reset model data, selections, and UI state."""
+        self._model.reset_metadata()
+        self._user_selection = {}
+        self._selection_candidates = {}
+        self._selection_details = {}
+        self._view.reset_interface()
 
     def _build_metadata_rows(self,
                              metadata_container: MetadataContainer,
@@ -165,7 +181,7 @@ class ControllerOntology:
                         selection_option = {"label": label or value,
                                             "value": value}
                         selection_details = self._build_selection_details(
-                            term, candidate
+                            candidate
                         )
                         if selection_details:
                             self._selection_candidates[group_id][
@@ -196,27 +212,23 @@ class ControllerOntology:
             group_index += 1
 
         return rows
+
     @staticmethod
     def _build_selection_details(
-            term: str,
             candidate: Ontology,
     ) -> OntologySelection | None:
         code = ControllerOntology._candidate_value(candidate)
         if not code:
             return None
         synonyms = ControllerOntology._merge_synonyms(
-            term,
             getattr(candidate, "synonyms", []),
         )
         return OntologySelection(code=code, synonyms=synonyms)
 
     @staticmethod
-    def _merge_synonyms(term: str, synonyms: list[str]) -> list[str]:
+    def _merge_synonyms(synonyms: list[str]) -> list[str]:
         merged = []
         seen = set()
-        if term:
-            merged.append(term)
-            seen.add(term.casefold())
         for synonym in synonyms or []:
             if not synonym:
                 continue

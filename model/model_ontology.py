@@ -35,6 +35,10 @@ class ModelOntology:
             self._metadata_container,
             file_path)
 
+    def get_dataset_id(self) -> str:
+        """Return the dataset id from loaded metadata."""
+        return self._metadata_container.get_dataset_id()
+
     def export_csv(
             self,
             directory_path: str,
@@ -85,6 +89,10 @@ class ModelOntology:
             )
 
         return export_paths
+
+    def reset_metadata(self) -> None:
+        """Reset stored metadata values to initial state."""
+        self._metadata_container.reset_values()
 
     def search_terms_from_metadata(self) -> list[
         tuple[Metadata, str, list[Ontology]]]:
