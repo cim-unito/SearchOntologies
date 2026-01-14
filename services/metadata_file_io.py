@@ -73,28 +73,48 @@ class MetadataFileIO:
         return metadata_container
 
     def write_ontology_export(self, directory: Path,
+                              dataset_id: str,
                               fieldnames: list[str],
                               rows: list[dict]) -> Path:
-        export_path = directory / "ontology_export.csv"
+        export_path = self._build_export_path(
+            directory,
+            dataset_id,
+            "ontology_export.csv",
+        )
         self.write_csv(export_path, fieldnames, rows)
         return export_path
 
     def write_synonyms_export(self, directory: Path,
+                              dataset_id: str,
                               rows: list[dict]) -> Path:
-        export_path = directory / "ontology_export_synonyms.csv"
+        export_path = self._build_export_path(
+            directory,
+            dataset_id,
+            "ontology_export_synonyms.csv",
+        )
         self.write_csv(export_path, ["OntologyCode", "Synonyms"], rows)
         return export_path
 
     def write_ontology_export_excel(self, directory: Path,
+                                    dataset_id: str,
                                     fieldnames: list[str],
                                     rows: list[dict]) -> Path:
-        export_path = directory / "ontology_export.xlsx"
+        export_path = self._build_export_path(
+            directory,
+            dataset_id,
+            "ontology_export.xlsx",
+        )
         self._write_excel(export_path, fieldnames, rows)
         return export_path
 
     def write_synonyms_export_excel(self, directory: Path,
+                                    dataset_id: str,
                                     rows: list[dict]) -> Path:
-        export_path = directory / "ontology_export_synonyms.xlsx"
+        export_path = self._build_export_path(
+            directory,
+            dataset_id,
+            "ontology_export_synonyms.xlsx",
+        )
         self._write_excel(export_path, ["OntologyCode", "Synonyms"], rows)
         return export_path
 
@@ -133,3 +153,20 @@ class MetadataFileIO:
             return ""
         text = str(value).strip()
         return text if text else ""
+
+    @staticmethod
+    def _build_export_path(directory: Path,
+                           dataset_id: str,
+                           filename: str) -> Path:
+        normalized_id = MetadataFileIO._sanitize_filename(dataset_id)
+        if normalized_id:
+            filename = f"{normalized_id}_{filename}"
+        return directory / filename
+
+    @staticmethod
+    def _sanitize_filename(value: str) -> str:
+        cleaned = "".join(
+            char if char.isalnum() else "_"
+            for char in value.strip()
+        )
+        return "_".join(filter(None, cleaned.split("_")))

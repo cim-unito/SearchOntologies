@@ -59,6 +59,7 @@ class ModelOntology:
             export_paths.extend(
                 self._write_ontology_export(
                     directory,
+                    dataset_id,
                     fieldnames,
                     [row],
                     export_format,
@@ -74,6 +75,7 @@ class ModelOntology:
             export_paths.extend(
                 self._write_synonyms_export(
                     directory,
+                    dataset_id,
                     selection_rows,
                     export_format,
                 )
@@ -209,6 +211,7 @@ class ModelOntology:
     def _write_ontology_export(
             self,
             directory: Path,
+            dataset_id: str,
             fieldnames: list[str],
             rows: list[dict],
             export_format: str,
@@ -217,6 +220,7 @@ class ModelOntology:
             return [
                 self._metadata_file_io.write_ontology_export_excel(
                     directory,
+                    dataset_id,
                     fieldnames,
                     rows,
                 )
@@ -224,6 +228,7 @@ class ModelOntology:
         return [
             self._metadata_file_io.write_ontology_export(
                 directory,
+                dataset_id,
                 fieldnames,
                 rows,
             )
@@ -232,6 +237,7 @@ class ModelOntology:
     def _write_synonyms_export(
             self,
             directory: Path,
+            dataset_id: str,
             rows: list[dict],
             export_format: str,
     ) -> list[Path]:
@@ -239,12 +245,14 @@ class ModelOntology:
             return [
                 self._metadata_file_io.write_synonyms_export_excel(
                     directory,
+                    dataset_id,
                     rows,
                 )
             ]
         return [
             self._metadata_file_io.write_synonyms_export(
                 directory,
+                dataset_id,
                 rows,
             )
         ]
