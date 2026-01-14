@@ -28,7 +28,7 @@ A desktop application for mapping metadata fields from a structured Excel templa
 
 1. **Install dependencies**
    ```bash
-   pip install -r Requirements.txt
+   pip install -r requirements.txt
    ```
 
 2. **Create a `.env` file**
