@@ -7,6 +7,11 @@ class ViewOntology(ft.Control):
     SURFACE_COLOR = "#F7FAF9"
     SURFACE_VARIANT_COLOR = "#E0E7E6"
     OUTLINE_VARIANT_COLOR = "#C4D2D0"
+    BUTTON_BG_COLOR = "#5C9792"
+    BUTTON_TEXT_COLOR = "#FFFFFF"
+    BUTTON_BG_COLOR_1 = "#6FAAA5"
+    BUTTON_BG_COLOR_2 = "#5C9792"
+    BUTTON_BG_COLOR_3 = "#4C8883"
 
     COLUMN_WIDTHS = {
         "code": 70,
@@ -96,10 +101,10 @@ class ViewOntology(ft.Control):
 
             for row in metadata_rows
         ]
-        self.chip_metadata_count.label = ft.Text(
-            f"{len(metadata_rows)} elements")
         project_id_text = project_id or "—"
         self.chip_project_id.label = ft.Text(f"ID project: {project_id_text}")
+        self.chip_metadata_count.label = ft.Text(
+            f"{len(metadata_rows)} elements")
         self.tbl_metadata.visible = has_rows
         self.empty_metadata_placeholder.visible = not has_rows
         self.update_page()
@@ -164,6 +169,8 @@ class ViewOntology(ft.Control):
             text="Select metadata file",
             icon=ft.Icons.UPLOAD_FILE,
             tooltip="Select the metadata excel file to search for ontologies",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
             expand=True
         )
 
@@ -174,6 +181,8 @@ class ViewOntology(ft.Control):
             text="Save CSVs",
             icon=ft.Icons.SAVE_ALT,
             tooltip="Save ontology CSVs to a selected folder",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
             expand=True
         )
 
@@ -182,6 +191,8 @@ class ViewOntology(ft.Control):
             text="Reset",
             icon=ft.Icons.RESTART_ALT,
             tooltip="Clear loaded data and reset the app",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
             expand=True
         )
         # metadata table
@@ -208,6 +219,8 @@ class ViewOntology(ft.Control):
             text="Search ontologies",
             icon=ft.Icons.SEARCH,
             tooltip="Performs ontology searches on uploaded metadata",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
         )
 
         # search progress indicator
@@ -228,13 +241,6 @@ class ViewOntology(ft.Control):
             visible=False,
         )
 
-        # chip records
-        self.chip_metadata_count = ft.Chip(
-            label=ft.Text("0 elements"),
-            leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
-            bgcolor=self.PRIMARY_CONTAINER_COLOR,
-            shape=ft.StadiumBorder(),
-        )
         # chip project id
         self.chip_project_id = ft.Chip(
             label=ft.Text("ID project: —"),
@@ -242,6 +248,15 @@ class ViewOntology(ft.Control):
             bgcolor=self.PRIMARY_CONTAINER_COLOR,
             shape=ft.StadiumBorder(),
         )
+
+        # chip records
+        self.chip_metadata_count = ft.Chip(
+            label=ft.Text("0 elements"),
+            leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
+            bgcolor=self.PRIMARY_CONTAINER_COLOR,
+            shape=ft.StadiumBorder(),
+        )
+
         # empty table state
         self.empty_metadata_placeholder = ft.Column(
             [
@@ -272,8 +287,8 @@ class ViewOntology(ft.Control):
                                     "Metadata", size=18,
                                     weight=ft.FontWeight.W_600
                                 ),
-                                self.chip_metadata_count,
                                 self.chip_project_id,
+                                self.chip_metadata_count,
                                 ft.Container(expand=True),
                                 self.btn_search,
                             ],
