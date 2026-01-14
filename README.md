@@ -1,4 +1,6 @@
-# FoundingGIDE Ontology Mapper
+[![FoundingGIDE logo](assets/images/foundingGIDE.png)](https://founding-gide.eurobioimaging.eu/)
+
+# FoundingGIDE Ontology
 
 A desktop application for mapping metadata fields from a structured Excel template to ontology terms using the BioPortal search API. The UI is built with Flet, and the backend loads metadata mappings from JSON, queries BioPortal for candidate terms, and exports curated ontology selections to CSV or Excel.
 
