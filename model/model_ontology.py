@@ -23,6 +23,9 @@ class ModelOntology:
         self._metadata_container = MetadataMappingDao.load_metadata_mapping(
             self._domains)
         self._metadata_file_io = metadata_file_io or MetadataFileIO()
+        self._metadata_entries = tuple(
+            self._metadata_container.get_cells_sorted().values()
+        )
 
     @property
     def bioportal(self) -> BioPortalClient:
@@ -51,7 +54,7 @@ class ModelOntology:
         metadata_container = self._metadata_container
         dataset_id = metadata_container.get_dataset_id()
         fieldnames, row = self._build_export_row(
-            metadata_container, user_selection, dataset_id, empty_value
+            user_selection, dataset_id, empty_value
         )
         directory = Path(directory_path)
         export_paths: list[Path] = []
@@ -94,37 +97,15 @@ class ModelOntology:
 
         Returns a list of (metadata, term, ontology) tuples.
         """
-        metadata_dict = self._metadata_container.get_cells_sorted()
         results = []
-        for meta in metadata_dict.values():
-            domain = meta.get_domain()
-
-            if not domain or domain.id.casefold() == "dataset":
-                continue
+        for meta in self._iter_searchable_metadata():
 
             cell_value = meta.get_cell_value()
             terms = self._split_terms(cell_value) if cell_value else [""]
-            ontology_id = (
-                meta.get_ontology_id()
-                if getattr(domain, "ontology", None)
-                else ""
-            )
+            ontology_id = self._resolve_ontology_id(meta)
 
             for term in terms:
-                candidates = []
-
-                if term and ontology_id:
-                    result_items = self._bioportal.search_ontology(
-                        cell_value=term,
-                        ontology_id=ontology_id,
-                    )
-                    for item in result_items:
-                        candidates.append(Ontology(
-                            id=ontology_id,
-                            value=item.get("notation", ""),
-                            base_uri=item.get("purl", ""),
-                            synonyms=item.get("synonyms", []),
-                        ))
+                candidates = self._search_candidates(term, ontology_id)
 
                 results.append((meta, term, candidates))
 
@@ -146,20 +127,17 @@ class ModelOntology:
         parts = [part.strip() for part in cell_value.split(",")]
         return [part for part in parts if part]
 
-    def _build_export_row(self, metadata_container,
-                          user_selection: dict[str, str],
-                          dataset_id: str,
-                          empty_value: str):
+    def _build_export_row(
+            self,
+            user_selection: dict[str, str],
+            dataset_id: str,
+            empty_value: str,
+    ) -> tuple[list[str], dict[str, str]]:
         domain_order = []
         domain_values = {}
         entry_index = 0
 
-        for metadata in metadata_container.get_cells_sorted().values():
-            domain = getattr(metadata, "domain", None)
-            if not domain or not domain.ontology:
-                continue
-            if domain.id.casefold() == "dataset":
-                continue
+        for metadata in self._iter_searchable_metadata():
 
             ontology_domain = self._format_ontology_domain(metadata)
             if ontology_domain not in domain_values:
@@ -271,12 +249,44 @@ class ModelOntology:
         domain_value = metadata.subdomain or metadata.domain.id
         return f"{self._pascal_case(ontology_id)}{self._pascal_case(domain_value)}"
 
+    def _iter_searchable_metadata(self):
+        for metadata in self._metadata_entries:
+            domain = getattr(metadata, "domain", None)
+            ontology = getattr(domain, "ontology", None) if domain else None
+            if not domain or not ontology or domain.id.casefold() == "dataset":
+                continue
+            yield metadata
+
+    def _search_candidates(self, term: str, ontology_id: str) -> list[Ontology]:
+        if not term or not ontology_id:
+            return []
+
+        result_items = self._bioportal.search_ontology(
+            cell_value=term,
+            ontology_id=ontology_id,
+        )
+        return [
+            Ontology(
+                id=ontology_id,
+                value=item.get("notation", ""),
+                base_uri=item.get("purl", ""),
+                synonyms=item.get("synonyms", []),
+            )
+            for item in result_items
+        ]
+
+    @staticmethod
+    def _resolve_ontology_id(metadata: Metadata) -> str:
+        domain = getattr(metadata, "domain", None)
+        ontology = getattr(domain, "ontology", None) if domain else None
+        return getattr(ontology, "id", "") if ontology else ""
+
     @staticmethod
     def _format_cell_value(values: list[str], empty_value: str) -> str:
         cleaned = [value for value in values if value]
         if not cleaned:
-            return "NULL"
-        return ";".join(cleaned) if cleaned else empty_value
+            return empty_value or "NULL"
+        return ";".join(cleaned)
 
     @staticmethod
     def _unique_synonyms(values: list[str]) -> list[str]:
