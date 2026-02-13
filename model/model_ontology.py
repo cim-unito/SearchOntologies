@@ -205,10 +205,13 @@ class ModelOntology:
 
         rows = []
         for code, synonyms in grouped.items():
+            unique_synonyms = self._unique_synonyms(synonyms)
+            if not unique_synonyms:
+                continue
             rows.append({
                 "OntologyCode": code,
                 "Synonyms": self._format_cell_value(
-                    self._unique_synonyms(synonyms),
+                    unique_synonyms,
                     empty_value,
                 ),
             })
@@ -280,13 +283,14 @@ class ModelOntology:
         unique = []
         seen = set()
         for value in values or []:
-            if not value:
+            normalized = value.strip() if isinstance(value, str) else ""
+            if not normalized:
                 continue
-            key = value.casefold()
+            key = normalized.casefold()
             if key in seen:
                 continue
             seen.add(key)
-            unique.append(value)
+            unique.append(normalized)
         return unique
 
     @staticmethod
