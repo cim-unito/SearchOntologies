@@ -75,6 +75,7 @@ class ViewOntology(ft.Control):
 
     def set_controller(self, controller) -> None:
         """Assign the controller that manages application logic."""
+        self._controller = controller
 
     def load_interface(self) -> None:
         """
@@ -536,9 +537,6 @@ class ViewOntology(ft.Control):
 
     def _bind_events(self) -> None:
         """Wire UI events to controller callbacks."""
-        if not self._controller:
-            raise RuntimeError("Controller must be set before loading the interface")
-
         self.file_picker.on_result = self.on_file_picked
         self.btn_select_metadata_file.on_click = (
             lambda _: self.file_picker.pick_files(
