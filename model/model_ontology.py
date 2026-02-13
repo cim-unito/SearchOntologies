@@ -98,32 +98,33 @@ class ModelOntology:
         results = []
         for meta in metadata_dict.values():
             domain = meta.get_domain()
+
+            if not domain or domain.id.casefold() == "dataset":
+                continue
+
             cell_value = meta.get_cell_value()
+            terms = self._split_terms(cell_value) if cell_value else [""]
+            ontology_id = (
+                meta.get_ontology_id()
+                if getattr(domain, "ontology", None)
+                else ""
+            )
 
-            if not cell_value or not domain or not domain.ontology:
-                continue
-
-            if domain.id.casefold() == "dataset":
-                continue
-
-            ontology_id = meta.get_ontology_id()
-            if not ontology_id:
-                continue
-
-            terms = self._split_terms(cell_value)
             for term in terms:
-                result_items = self._bioportal.search_ontology(
-                    cell_value=term,
-                    ontology_id=ontology_id
-                )
                 candidates = []
-                for item in result_items:
-                    candidates.append(Ontology(
-                        id=ontology_id,
-                        value=item.get("notation", ""),
-                        base_uri=item.get("purl", ""),
-                        synonyms=item.get("synonyms", []),
-                    ))
+
+                if term and ontology_id:
+                    result_items = self._bioportal.search_ontology(
+                        cell_value=term,
+                        ontology_id=ontology_id,
+                    )
+                    for item in result_items:
+                        candidates.append(Ontology(
+                            id=ontology_id,
+                            value=item.get("notation", ""),
+                            base_uri=item.get("purl", ""),
+                            synonyms=item.get("synonyms", []),
+                        ))
 
                 results.append((meta, term, candidates))
 

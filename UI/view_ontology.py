@@ -37,7 +37,7 @@ class ViewOntology(ft.Control):
         self._controller = None
 
         # Main controls (initialized in _build_controls)
-        self.img_founding_gide: ft.Control | None = None
+        self.img_founding_gide: ft.Column | None = None
         self.btn_select_metadata_file: ft.FilledButton | None = None
         self.btn_export_csv: ft.FilledButton | None = None
         self.btn_reset_app: ft.FilledButton | None = None
