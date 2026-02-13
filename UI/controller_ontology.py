@@ -141,26 +141,7 @@ class ControllerOntology:
             term_results: list[tuple[Metadata, str, list[Ontology]]],
     ) -> list:
         """Build selectable table rows for ontology term lookup results."""
-        self._update_default_selection(term_results)
         return self._build_rows(term_results, allow_selection=True)
-
-    def _update_default_selection(
-            self,
-            entries: Iterable[
-                tuple[Metadata, str, Optional[Iterable[Ontology]]]
-            ],
-    ):
-        """Set default selections for term groups if missing."""
-        for index, (metadata, term, ontology) in enumerate(entries):
-            candidates = self._normalize_candidates(ontology)
-            group_id = self._model.build_group_id(metadata, term, index)
-            if self._user_selection.get(group_id):
-                continue
-            for candidate in candidates:
-                candidate_value = self._candidate_value(candidate)
-                if candidate_value:
-                    self._user_selection[group_id] = candidate_value
-                    break
 
     def _build_rows(
             self,
@@ -171,16 +152,21 @@ class ControllerOntology:
     ) -> list:
         """Create UI table row dictionaries for metadata or term results."""
         rows = []
-        group_index = 0
         if allow_selection:
             self._selection_candidates = {}
             self._selection_details = {}
         for index, (metadata, term, ontology) in enumerate(entries):
             candidates = self._normalize_candidates(ontology)
             group_id = self._model.build_group_id(metadata, term, index)
-            default_value = self._user_selection.get(group_id, "")
+
             if allow_selection:
                 self._selection_candidates[group_id] = {}
+
+            default_value = self._resolve_default_value(
+                group_id,
+                candidates,
+                allow_selection,
+            )
             for candidate in candidates:
                 selection_option = None
                 if allow_selection and candidate:
@@ -205,7 +191,7 @@ class ControllerOntology:
                     if getattr(candidate, "synonyms", None) else "",
                     "iri": getattr(candidate, "base_uri",
                                    "") if candidate else "",
-                    "group_index": group_index,
+                    "group_index": index,
                     "selection_group": group_id,
                     "selection_option": selection_option,
                     "selected_value": default_value,
@@ -218,9 +204,27 @@ class ControllerOntology:
                 if selection:
                     self._selection_details[group_id] = selection
 
-            group_index += 1
-
         return rows
+
+    def _resolve_default_value(
+            self,
+            group_id: str,
+            candidates: list[Ontology | None],
+            allow_selection: bool,
+    ) -> str:
+        """Keep or infer the default selected candidate for a row group."""
+        default_value = self._user_selection.get(group_id, "")
+        if default_value or not allow_selection:
+            return default_value
+
+        for candidate in candidates:
+            candidate_value = self._candidate_value(candidate)
+            if not candidate_value:
+                continue
+            self._user_selection[group_id] = candidate_value
+            return candidate_value
+
+        return ""
 
     @staticmethod
     def _build_selection_details(
