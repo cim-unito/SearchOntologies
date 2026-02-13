@@ -2,6 +2,8 @@ import flet as ft
 
 
 class ViewOntology(ft.Control):
+    """Main application view for ontology management."""
+
     PRIMARY_COLOR = "#376966"
     PRIMARY_CONTAINER_COLOR = "#5A8F8A"
     SURFACE_COLOR = "#F7FAF9"
@@ -25,6 +27,7 @@ class ViewOntology(ft.Control):
     }
 
     def __init__(self, page: ft.Page):
+        """Initialize view state and references to UI controls."""
         super().__init__()
         # page
         self._page = page
@@ -57,7 +60,21 @@ class ViewOntology(ft.Control):
         self._pending_export_format = self.DEFAULT_EXPORT_FORMAT
         self._choice_groups: dict[str, list[ft.Checkbox]] = {}
 
+        # Immediate static page settings.
         self._configure_static_page_settings()
+
+    @property
+    def controller(self):
+        """Return the controller associated with the view."""
+        return self._controller
+
+    @property
+    def page(self) -> ft.Page:
+        """Expose the Flet page instance."""
+        return self._page
+
+    def set_controller(self, controller) -> None:
+        """Assign the controller that manages application logic."""
 
     def load_interface(self) -> None:
         """
@@ -83,22 +100,12 @@ class ViewOntology(ft.Control):
 
         self._page.update()
 
-    def set_controller(self, controller) -> None:
-        self._controller = controller
-
-    @property
-    def controller(self):
-        return self._controller
-
-    @property
-    def page(self) -> ft.Page:
-        return self._page
-
     def update_metadata_table(
             self,
             metadata_rows: list[dict],
             project_id: str | None = None,
     ) -> None:
+        """Update table, chips, and placeholder state with loaded metadata."""
         if not self.tbl_metadata:
             return
 
@@ -134,14 +141,17 @@ class ViewOntology(ft.Control):
         self.update_page()
 
     def create_alert(self, message: str) -> None:
+        """Show a modal dialog with an informational message."""
         dialog = ft.AlertDialog(title=ft.Text(message))
         self._page.open(dialog)
         self._page.update()
 
-    def update_page(self)  -> None:
+    def update_page(self) -> None:
+        """Force a page re-render."""
         self._page.update()
 
     def set_metadata_loaded_state(self) -> None:
+        """Button state after metadata file load."""
         self._apply_button_state(
             select_metadata_disabled=True,
             export_disabled=True,
@@ -150,6 +160,7 @@ class ViewOntology(ft.Control):
         )
 
     def set_after_search_state(self) -> None:
+        """Button state when the search is complete."""
         self._apply_button_state(
             select_metadata_disabled=True,
             export_disabled=False,
@@ -158,11 +169,13 @@ class ViewOntology(ft.Control):
         )
 
     def set_search_loading(self, is_loading: bool) -> None:
+        """Show or hide the search progress indicator."""
         if self.search_status_row:
             self.search_status_row.visible = is_loading
         self.update_page()
 
     def reset_interface(self) -> None:
+        """Reset the view to its initial state."""
         if self.tbl_metadata:
             self.tbl_metadata.rows = []
             self.tbl_metadata.visible = False
@@ -182,6 +195,7 @@ class ViewOntology(ft.Control):
         self.update_page()
 
     def show_reset_confirmation(self, on_confirm) -> None:
+        """Show a reset confirmation dialog before clearing data."""
         self._close_dialog(self._dlg_reset)
 
         def on_cancel(_):
@@ -209,6 +223,7 @@ class ViewOntology(ft.Control):
         self._page.open(self._dlg_reset)
 
     def show_export_dialog(self, _) -> None:
+        """Show dialog to choose format and export directory."""
         self._close_dialog(self._dlg_export)
 
         def on_cancel(_):
@@ -248,6 +263,7 @@ class ViewOntology(ft.Control):
         self._page.open(self._dlg_export)
 
     def on_file_picked(self, e: ft.FilePickerResultEvent) -> None:
+        """Handle user selection of the metadata file."""
         if e.files:
             if self.empty_metadata_placeholder:
                 self.empty_metadata_placeholder.visible = False
@@ -259,6 +275,7 @@ class ViewOntology(ft.Control):
         self.create_alert("No file selected!")
 
     def on_directory_picked(self, e: ft.FilePickerResultEvent) -> None:
+        """Handle selected directory for exporting results."""
         if e.path:
             export_format = self._pending_export_format or self.DEFAULT_EXPORT_FORMAT
             self._controller.export_csv(e.path, export_format)
@@ -267,11 +284,13 @@ class ViewOntology(ft.Control):
         self.create_alert("No folder selected!")
 
     def _configure_static_page_settings(self) -> None:
+        """Apply base page settings independent of theme."""
         self._page.title = "FoundingGIDE Ontology"
         self._page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
         self._page.scroll = ft.ScrollMode.AUTO
 
     def _configure_page_theme(self) -> None:
+        """Configure app theme, colors, and app bar."""
         self._page.theme_mode = ft.ThemeMode.LIGHT
         self._page.padding = 20
         self._page.bgcolor = self.PRIMARY_COLOR
@@ -292,12 +311,14 @@ class ViewOntology(ft.Control):
         )
 
     def _build_controls(self) -> None:
+        """Build all UI control groups."""
         self._build_upload_controls()
         self._build_export_controls()
         self._build_search_controls()
         self._build_table_controls()
 
     def _build_upload_controls(self) -> None:
+        """Create controls for file upload and app reset."""
         self.img_founding_gide = ft.Column(
             [
                 ft.Image(
@@ -309,7 +330,7 @@ class ViewOntology(ft.Control):
             spacing=4,
         )
 
-        # button select the metadata excel file
+        # Button select the metadata Excel file
         self.file_picker = ft.FilePicker()
         self._page.overlay.append(self.file_picker)
 
@@ -322,7 +343,7 @@ class ViewOntology(ft.Control):
             expand = True,
         )
 
-        # button to reset the app
+        # Button to reset the app
         self.btn_reset_app = ft.FilledButton(
             text="Reset",
             icon=ft.Icons.RESTART_ALT,
@@ -333,6 +354,7 @@ class ViewOntology(ft.Control):
         )
 
     def _build_export_controls(self) -> None:
+        """Create controls required for result export."""
         self.directory_picker = ft.FilePicker()
         self._page.overlay.append(self.directory_picker)
 
@@ -356,6 +378,7 @@ class ViewOntology(ft.Control):
         )
 
     def _build_search_controls(self) -> None:
+        """Create search button and related progress state."""
         self.btn_search = ft.FilledTonalButton(
             text="Search ontologies",
             icon=ft.Icons.SEARCH,
@@ -364,7 +387,7 @@ class ViewOntology(ft.Control):
             color=self.BUTTON_TEXT_COLOR,
         )
 
-        # search progress indicator
+        # Progress indicator shown during search.
         self.search_progress = ft.ProgressBar(
             width=180,
             value=None,
@@ -385,6 +408,7 @@ class ViewOntology(ft.Control):
         )
 
     def _build_table_controls(self) -> None:
+        """Create metadata table, info chips, and empty placeholder."""
         self.chip_project_id = ft.Chip(
             label=ft.Text(self.DEFAULT_PROJECT_LABEL),
             leading=ft.Icon(ft.Icons.BADGE, size=18),
@@ -392,7 +416,7 @@ class ViewOntology(ft.Control):
             shape=ft.StadiumBorder(),
         )
 
-        # chip records
+        # Chip showing record count.
         self.chip_metadata_count = ft.Chip(
             label=ft.Text(self.DEFAULT_METADATA_COUNT_LABEL),
             leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
@@ -400,7 +424,7 @@ class ViewOntology(ft.Control):
             shape=ft.StadiumBorder(),
         )
 
-        # empty table state
+        # Metadata table
         self.tbl_metadata = ft.DataTable(
             columns=[
                 self._build_column("Code", "code"),
@@ -435,7 +459,7 @@ class ViewOntology(ft.Control):
             visible=True,
         )
 
-        # card for the table
+        # Card containing the table.
         self.card_metadata_table = ft.Card(
             elevation=2,
             content=ft.Container(
@@ -488,6 +512,7 @@ class ViewOntology(ft.Control):
         )
 
     def _define_layout(self) -> ft.Column:
+        """Compose the main page layout."""
         return ft.Column(
             controls=[
                 self.img_founding_gide,
@@ -510,18 +535,15 @@ class ViewOntology(ft.Control):
         )
 
     def _bind_events(self) -> None:
+        """Wire UI events to controller callbacks."""
         if not self._controller:
             raise RuntimeError("Controller must be set before loading the interface")
 
-    def _bind_events(self):
-        """
-        Wire UI events to controller callbacks; requires controller to be set.
-        """
         self.file_picker.on_result = self.on_file_picked
         self.btn_select_metadata_file.on_click = (
-        lambda _: self.file_picker.pick_files(
-            allow_multiple=False,
-            allowed_extensions=["xlsx"],
+            lambda _: self.file_picker.pick_files(
+                allow_multiple=False,
+                allowed_extensions=["xlsx"],
             )
         )
         self.btn_search.on_click = self._controller.lookup_term
@@ -530,6 +552,7 @@ class ViewOntology(ft.Control):
         self.btn_reset_app.on_click = self._controller.request_reset
 
     def _set_initial_button_state(self) -> None:
+        """Set initial button state at bootstrap/reset."""
         self._apply_button_state(
             select_metadata_disabled=False,
             export_disabled=True,
@@ -545,6 +568,7 @@ class ViewOntology(ft.Control):
             reset_disabled: bool,
             search_disabled: bool,
     ) -> None:
+        """Apply button enabled/disabled state centrally."""
         if self.btn_select_metadata_file:
             self.btn_select_metadata_file.disabled = select_metadata_disabled
         if self.btn_export_csv:
@@ -560,7 +584,7 @@ class ViewOntology(ft.Control):
             self._page.close(dialog)
 
     def _build_column(self, title: str, column_key: str) -> ft.DataColumn:
-        """ Return a configured DataColumn for the metadata table."""
+        """Create a table column with optional predefined width."""
         width = self.COLUMN_WIDTHS.get(column_key)
         label_control: ft.Control = ft.Text(title)
 
@@ -573,10 +597,7 @@ class ViewOntology(ft.Control):
         return ft.DataColumn(label_control)
 
     def _build_cell(self, value, column_key: str) -> ft.DataCell:
-        """
-        Return a configured DataCell for the metadata table, applying width
-         and content formatting (IRI links open externally).
-        """
+        """Create a table cell applying per-column format and behavior."""
         width = self.COLUMN_WIDTHS.get(column_key)
 
         if column_key == "choice":
@@ -622,6 +643,7 @@ class ViewOntology(ft.Control):
         )
 
     def _build_choice_cell(self, row: dict) -> ft.Control:
+        """Handle rendering and mutual exclusion for choice-group checkboxes."""
         option = row.get("selection_option")
         if not option:
             return ft.Text("")
@@ -661,6 +683,7 @@ class ViewOntology(ft.Control):
         return checkbox
 
     def _row_color(self, row: dict) -> str:
+        """Alternate row colors by group for readability."""
         group_index = row.get("group_index")
         if group_index is None:
             return ""
