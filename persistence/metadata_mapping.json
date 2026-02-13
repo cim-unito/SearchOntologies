@@ -72,47 +72,47 @@
 			"domain": "drugs",
 			"subdomain": "drug"
 		},
-		"B110": {
+		"B112": {
 			"cell_name": "target organ/tissue",
 			"domain": "experimental_conditions",
 			"subdomain": "target organ/tissue"
 		},
-		"B118": {
+		"B122": {
 			"cell_name": "analgesic name",
 			"domain": "drugs",
 			"subdomain": "analgesic"
 		},
-		"B124": {
+		"B129": {
 			"cell_name": "drugs",
 			"domain": "drugs",
 			"subdomain": "anhestetic"
 		},
-		"B129": {
+		"B134": {
 			"cell_name": "method",
 			"domain": "experimental_conditions",
 			"subdomain": "euthanasia method"
 		},
-		"B132": {
+		"B137": {
 			"cell_name": "tissues collected post-euthanasia",
 			"domain": "anatomy",
 			"subdomain": "tissue excised"
 		},
-		"B134": {
+		"B139": {
 			"cell_name": "tissue description",
 			"domain": "pathology",
 			"subdomain": "histological tissue description"
 		},
-		"B148": {
+		"B153": {
 			"cell_name": "commercial name",
 			"domain": "drugs",
 			"subdomain": "contrast agent"
 		},
-		"B154": {
+		"B159": {
 			"cell_name": "route of administration",
 			"domain": "experimental_conditions",
 			"subdomain": "route administration"
 		},
-		"B157": {
+		"B162": {
 			"cell_name": "identification",
 			"domain": "cell_line",
 			"subdomain": "cell line name"

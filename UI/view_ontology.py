@@ -10,6 +10,10 @@ class ViewOntology(ft.Control):
     BUTTON_BG_COLOR = "#5C9792"
     BUTTON_TEXT_COLOR = "#FFFFFF"
 
+    DEFAULT_PROJECT_LABEL = "ID project: —"
+    DEFAULT_METADATA_COUNT_LABEL = "0 elements"
+    DEFAULT_EXPORT_FORMAT = "csv"
+
     COLUMN_WIDTHS = {
         "code": 70,
         "domain": 120,
@@ -24,53 +28,54 @@ class ViewOntology(ft.Control):
         super().__init__()
         # page
         self._page = page
-        self._page.title = "FoundingGIDE Ontology"
-        self._page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
-        self._page.scroll = ft.ScrollMode.AUTO
 
         # controller (it is not initialized. Must be initialized in the main,
         # after the controller is created)
         self._controller = None
 
-        # graphical elements
-        self.img_founding_gide = None
-        self.btn_select_metadata_file = None
-        self.btn_export_csv = None
-        self.btn_reset_app = None
-        self.file_picker = None
-        self.directory_picker = None
-        self.dd_export_format = None
-        self.tbl_metadata = None
-        self.btn_search = None
-        self.chip_project_id = None
-        self.chip_metadata_count = None
-        self.empty_metadata_placeholder = None
-        self.card_metadata_table = None
-        self._dlg_reset = None
-        self._dlg_export = None
-        self._pending_export_format = "csv"
-        self._choice_groups: dict[str, list[ft.Checkbox]] = {}
-        self.search_progress = None
-        self.search_status_text = None
-        self.search_status_row = None
+        # Main controls (initialized in _build_controls)
+        self.img_founding_gide: ft.Control | None = None
+        self.btn_select_metadata_file: ft.FilledButton | None = None
+        self.btn_export_csv: ft.FilledButton | None = None
+        self.btn_reset_app: ft.FilledButton | None = None
+        self.file_picker: ft.FilePicker | None = None
+        self.directory_picker: ft.FilePicker | None = None
+        self.dd_export_format: ft.Dropdown | None = None
+        self.tbl_metadata: ft.DataTable | None = None
+        self.btn_search: ft.FilledTonalButton | None = None
+        self.chip_project_id: ft.Chip | None = None
+        self.chip_metadata_count: ft.Chip | None = None
+        self.empty_metadata_placeholder: ft.Column | None = None
+        self.card_metadata_table: ft.Card | None = None
 
-    def load_interface(self):
+        self.search_progress: ft.ProgressBar | None = None
+        self.search_status_text: ft.Text | None = None
+        self.search_status_row: ft.Row | None = None
+
+        self._dlg_reset: ft.AlertDialog | None = None
+        self._dlg_export: ft.AlertDialog | None = None
+        self._pending_export_format = self.DEFAULT_EXPORT_FORMAT
+        self._choice_groups: dict[str, list[ft.Checkbox]] = {}
+
+        self._configure_static_page_settings()
+
+    def load_interface(self) -> None:
         """
         Initialize page theme, build controls, bind events, and mount the
         layout to the page.
         """
-        self._configure_page()
+        self._configure_page_theme()
         self._build_controls()
         self._set_initial_button_state()
         self._bind_events()
-        controls_layout = self._define_layout()
 
+        layout = self._define_layout()
         self._page.controls.append(
             ft.Container(
                 padding=20,
                 expand=True,
                 content=ft.Column(
-                    [controls_layout],
+                    [layout],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
             )
@@ -78,14 +83,28 @@ class ViewOntology(ft.Control):
 
         self._page.update()
 
+    def set_controller(self, controller) -> None:
+        self._controller = controller
+
+    @property
+    def controller(self):
+        return self._controller
+
+    @property
+    def page(self) -> ft.Page:
+        return self._page
+
     def update_metadata_table(
             self,
             metadata_rows: list[dict],
             project_id: str | None = None,
-    ):
-        """Populate the metadata table."""
+    ) -> None:
+        if not self.tbl_metadata:
+            return
+
         has_rows = bool(metadata_rows)
         self._choice_groups = {}
+
         self.tbl_metadata.rows = [
             ft.DataRow(
                 color=self._row_color(row),
@@ -97,337 +116,80 @@ class ViewOntology(ft.Control):
                     self._build_cell(row.get("synonyms", ""), "synonyms"),
                     self._build_cell(row.get("iri", ""), "iri"),
                     self._build_cell(row, "choice"),
-                ]
+                ],
             )
-
             for row in metadata_rows
         ]
-        project_id_text = project_id or "—"
-        self.chip_project_id.label = ft.Text(f"ID project: {project_id_text}")
-        self.chip_metadata_count.label = ft.Text(
-            f"{len(metadata_rows)} elements")
+
+        if self.chip_project_id:
+            project_id_text = project_id or "—"
+            self.chip_project_id.label = ft.Text(f"ID project: {project_id_text}")
+
+        if self.chip_metadata_count:
+            self.chip_metadata_count.label = ft.Text(f"{len(metadata_rows)} elements")
+
+        if self.empty_metadata_placeholder:
+            self.empty_metadata_placeholder.visible = not has_rows
         self.tbl_metadata.visible = has_rows
-        self.empty_metadata_placeholder.visible = not has_rows
         self.update_page()
 
-    def create_alert(self, message):
-        dlg = ft.AlertDialog(title=ft.Text(message))
-        self._page.open(dlg)
+    def create_alert(self, message: str) -> None:
+        dialog = ft.AlertDialog(title=ft.Text(message))
+        self._page.open(dialog)
         self._page.update()
 
-    def update_page(self):
+    def update_page(self)  -> None:
         self._page.update()
-
-    def _set_initial_button_state(self) -> None:
-        if self.btn_select_metadata_file:
-            self.btn_select_metadata_file.disabled = False
-        if self.btn_export_csv:
-            self.btn_export_csv.disabled = True
-        if self.btn_reset_app:
-            self.btn_reset_app.disabled = False
-        if self.btn_search:
-            self.btn_search.disabled = True
 
     def set_metadata_loaded_state(self) -> None:
-        if self.btn_select_metadata_file:
-            self.btn_select_metadata_file.disabled = True
-        if self.btn_export_csv:
-            self.btn_export_csv.disabled = True
-        if self.btn_reset_app:
-            self.btn_reset_app.disabled = False
-        if self.btn_search:
-            self.btn_search.disabled = False
-        self.update_page()
+        self._apply_button_state(
+            select_metadata_disabled=True,
+            export_disabled=True,
+            reset_disabled=False,
+            search_disabled=False,
+        )
 
     def set_after_search_state(self) -> None:
-        if self.btn_select_metadata_file:
-            self.btn_select_metadata_file.disabled = True
-        if self.btn_export_csv:
-            self.btn_export_csv.disabled = False
-        if self.btn_reset_app:
-            self.btn_reset_app.disabled = False
-        if self.btn_search:
-            self.btn_search.disabled = True
+        self._apply_button_state(
+            select_metadata_disabled=True,
+            export_disabled=False,
+            reset_disabled=False,
+            search_disabled=True,
+        )
+
+    def set_search_loading(self, is_loading: bool) -> None:
+        if self.search_status_row:
+            self.search_status_row.visible = is_loading
         self.update_page()
 
-    def set_controller(self, controller):
-        self._controller = controller
+    def reset_interface(self) -> None:
+        if self.tbl_metadata:
+            self.tbl_metadata.rows = []
+            self.tbl_metadata.visible = False
+        if self.empty_metadata_placeholder:
+            self.empty_metadata_placeholder.visible = True
+        if self.chip_project_id:
+            self.chip_project_id.label = ft.Text(self.DEFAULT_PROJECT_LABEL)
+        if self.chip_metadata_count:
+            self.chip_metadata_count.label = ft.Text(
+                self.DEFAULT_METADATA_COUNT_LABEL
+            )
+        if self.search_status_row:
+            self.search_status_row.visible = False
 
-    @property
-    def controller(self):
-        return self._controller
-
-    @controller.setter
-    def controller(self, controller):
-        self._controller = controller
-
-    @property
-    def page(self):
-        return self._page
-
-    def _configure_page(self):
-        self._page.theme_mode = ft.ThemeMode.LIGHT
-        self._page.padding = 20
-        self._page.bgcolor = self.PRIMARY_COLOR
-        self._page.theme = ft.Theme(
-            color_scheme_seed=self.PRIMARY_COLOR,
-            use_material3=True,
-        )
-        self._page.appbar = ft.AppBar(
-            title=ft.Text("FoundingGIDE Ontology"),
-            center_title=False,
-            bgcolor=self.SURFACE_COLOR,
-            actions=[
-                ft.IconButton(
-                    icon=ft.Icons.HELP_OUTLINE,
-                    tooltip="Select an Excel file and start the search",
-                )
-            ],
-        )
-
-    def _build_controls(self):
-        # logo founding gide
-        self.img_founding_gide = ft.Column(
-            [
-                ft.Image(src="assets/images/foundingGIDE.png", width=260,
-                         fit=ft.ImageFit.CONTAIN),
-            ],
-            spacing=4,
-        )
-
-        # button select the metadata excel file
-        self.file_picker = ft.FilePicker()
-        self._page.overlay.append(self.file_picker)
-        self.btn_select_metadata_file = ft.FilledButton(
-            text="Select metadata file",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Select the metadata excel file to search for ontologies",
-            bgcolor=self.BUTTON_BG_COLOR,
-            color=self.BUTTON_TEXT_COLOR,
-            expand=True
-        )
-
-        # button to export CSVs
-        self.directory_picker = ft.FilePicker()
-        self._page.overlay.append(self.directory_picker)
-        self.dd_export_format = ft.Dropdown(
-            label="Export format",
-            value="csv",
-            options=[
-                ft.dropdown.Option("csv", "CSV (.csv)"),
-                ft.dropdown.Option("excel", "Excel (.xlsx)"),
-            ],
-            width=220,
-        )
-        self.btn_export_csv = ft.FilledButton(
-            text="Download",
-            icon=ft.Icons.DOWNLOAD,
-            tooltip="Download ontology exports in CSV or Excel format",
-            bgcolor=self.BUTTON_BG_COLOR,
-            color=self.BUTTON_TEXT_COLOR,
-            expand=True
-        )
-
-        # button to reset the interface
-        self.btn_reset_app = ft.FilledButton(
-            text="Reset",
-            icon=ft.Icons.RESTART_ALT,
-            tooltip="Clear loaded data and reset the app",
-            bgcolor=self.BUTTON_BG_COLOR,
-            color=self.BUTTON_TEXT_COLOR,
-            expand=True
-        )
-        # metadata table
-        self.tbl_metadata = ft.DataTable(
-            columns=[
-                self._build_column("Code", "code"),
-                self._build_column("Domain", "Domain"),
-                self._build_column("Value", "value"),
-                self._build_column("Ontology", "ontology"),
-                self._build_column("Synonyms", "synonyms"),
-                self._build_column("IRI", "iri"),
-                self._build_column("", "choice"),
-            ],
-            rows=[],
-            data_row_min_height=52,
-            data_row_max_height=240,
-            heading_row_color=self.SURFACE_VARIANT_COLOR,
-            divider_thickness=0.8,
-        )
-        self.tbl_metadata.visible = False
-
-        # button to search ontologies
-        self.btn_search = ft.FilledTonalButton(
-            text="Search ontologies",
-            icon=ft.Icons.SEARCH,
-            tooltip="Performs ontology searches on uploaded metadata",
-            bgcolor=self.BUTTON_BG_COLOR,
-            color=self.BUTTON_TEXT_COLOR,
-        )
-
-        # search progress indicator
-        self.search_progress = ft.ProgressBar(
-            width=180,
-            value=None,
-            color=self.PRIMARY_CONTAINER_COLOR,
-        )
-        self.search_status_text = ft.Text(
-            "Searching ontologies...",
-            size=12,
-            color=self.PRIMARY_COLOR,
-        )
-        self.search_status_row = ft.Row(
-            controls=[self.search_progress, self.search_status_text],
-            spacing=12,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            visible=False,
-        )
-
-        # chip project id
-        self.chip_project_id = ft.Chip(
-            label=ft.Text("ID project: —"),
-            leading=ft.Icon(ft.Icons.BADGE, size=18),
-            bgcolor=self.PRIMARY_CONTAINER_COLOR,
-            shape=ft.StadiumBorder(),
-        )
-
-        # chip records
-        self.chip_metadata_count = ft.Chip(
-            label=ft.Text("0 elements"),
-            leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
-            bgcolor=self.PRIMARY_CONTAINER_COLOR,
-            shape=ft.StadiumBorder(),
-        )
-
-        # empty table state
-        self.empty_metadata_placeholder = ft.Column(
-            [
-                ft.Icon(ft.Icons.TABLE_VIEW, size=56,
-                        color=self.PRIMARY_COLOR),
-                ft.Text(
-                    value="Load an Excel file to see the metadata organized "
-                          "in the table.",
-                    text_align=ft.TextAlign.CENTER,
-                ),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            visible=True,
-        )
-
-        # card for the table
-        self.card_metadata_table = ft.Card(
-            elevation=2,
-            content=ft.Container(
-                padding=16,
-                expand=True,
-                content=ft.Column(
-                    controls=[
-                        ft.Row(
-                            controls=[
-                                ft.Text(
-                                    "Metadata", size=18,
-                                    weight=ft.FontWeight.W_600
-                                ),
-                                self.chip_project_id,
-                                self.chip_metadata_count,
-                                ft.Container(expand=True),
-                                self.btn_search,
-                            ],
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        ft.Divider(height=12, thickness=1,
-                                   color=self.OUTLINE_VARIANT_COLOR),
-                        self.search_status_row,
-                        ft.Container(
-                            bgcolor=self.SURFACE_COLOR,
-                            border_radius=12,
-                            padding=8,
-                            content=ft.Column(
-                                controls=[
-                                    ft.Row(
-                                        [ft.Container(
-                                            expand=True,
-                                            content=self.tbl_metadata
-                                        )],
-                                        scroll=ft.ScrollMode.AUTO,
-                                        expand=True,
-                                    ),
-                                    self.empty_metadata_placeholder,
-                                ],
-                                scroll=ft.ScrollMode.AUTO,
-                                expand=True,
-                            ),
-                        ),
-                    ],
-                    spacing=12,
-                ),
-            ),
-        )
-
-    def _define_layout(self) -> ft.Column:
-        controls_layout = ft.Column(
-            controls=[
-                self.img_founding_gide,
-                ft.Row(
-                    controls=[
-                        self.btn_select_metadata_file,
-                        self.btn_export_csv,
-                        self.btn_reset_app,
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=12,
-                ),
-                ft.Row(
-                    controls=[ft.Container(content=self.card_metadata_table)],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    expand=True,
-                ),
-            ],
-            spacing=20,
-        )
-
-        return controls_layout
-
-    def _bind_events(self):
-        """
-        Wire UI events to controller callbacks; requires controller to be set.
-        """
-        self.file_picker.on_result = self.on_file_picked
-        self.btn_select_metadata_file.on_click = lambda \
-                _: self.file_picker.pick_files(
-            allow_multiple=False,
-            allowed_extensions=["xlsx"],
-        )
-        self.btn_search.on_click = self._controller.lookup_term
-        self.directory_picker.on_result = self.on_directory_picked
-        self.btn_export_csv.on_click = self.show_export_dialog
-        self.btn_reset_app.on_click = self._controller.request_reset
-
-    def on_file_picked(self, e: ft.FilePickerResultEvent):
-        """
-        Handle file picker result, showing the table and delegating file
-        processing to the controller; alert when no file is selected.
-        """
-        if e.files:
-            self.empty_metadata_placeholder.visible = False
-            self.tbl_metadata.visible = True
-            self._controller.get_metadata_excel_file(e.files)
-        else:
-            self.create_alert("No file selected!")
+        self._set_initial_button_state()
+        self._choice_groups = {}
+        self.update_page()
 
     def show_reset_confirmation(self, on_confirm) -> None:
-        """Open a confirmation dialog before resetting the application."""
-        if self._dlg_reset:
-            self._page.close(self._dlg_reset)
+        self._close_dialog(self._dlg_reset)
 
         def on_cancel(_):
-            self._page.close(self._dlg_reset)
+            self._close_dialog(self._dlg_reset)
 
         def on_accept(_):
-            self._page.close(self._dlg_reset)
+            self._close_dialog(self._dlg_reset)
             on_confirm()
-
         self._dlg_reset = ft.AlertDialog(
             modal=True,
             title=ft.Text("Reset the application?"),
@@ -446,36 +208,22 @@ class ViewOntology(ft.Control):
         )
         self._page.open(self._dlg_reset)
 
-    def reset_interface(self) -> None:
-        """Restore the interface to its initial empty state."""
-        self.tbl_metadata.rows = []
-        self.tbl_metadata.visible = False
-        self.empty_metadata_placeholder.visible = True
-        self.chip_project_id.label = ft.Text("ID project: —")
-        self.chip_metadata_count.label = ft.Text("0 elements")
-        if self.search_status_row:
-            self.search_status_row.visible = False
-        self._set_initial_button_state()
-        self._choice_groups = {}
-        self.update_page()
-
     def show_export_dialog(self, _) -> None:
-        """Prompt the user for export format before choosing a folder."""
-        if self._dlg_export:
-            self._page.close(self._dlg_export)
+        self._close_dialog(self._dlg_export)
 
         def on_cancel(_):
-            self._page.close(self._dlg_export)
+            self._close_dialog(self._dlg_export)
 
         def on_confirm(_):
             selected_format = (
                 self.dd_export_format.value
                 if self.dd_export_format
-                else "csv"
+                else self.DEFAULT_EXPORT_FORMAT
             )
-            self._pending_export_format = selected_format or "csv"
-            self._page.close(self._dlg_export)
-            self.directory_picker.get_directory_path()
+            self._pending_export_format = selected_format or self.DEFAULT_EXPORT_FORMAT
+            self._close_dialog(self._dlg_export)
+            if self.directory_picker:
+                self.directory_picker.get_directory_path()
 
         self._dlg_export = ft.AlertDialog(
             modal=True,
@@ -499,33 +247,329 @@ class ViewOntology(ft.Control):
         )
         self._page.open(self._dlg_export)
 
-    def set_search_loading(self, is_loading: bool) -> None:
-        """Toggle the search progress indicator and search button state."""
-        if self.search_status_row:
-            self.search_status_row.visible = is_loading
+    def on_file_picked(self, e: ft.FilePickerResultEvent) -> None:
+        if e.files:
+            if self.empty_metadata_placeholder:
+                self.empty_metadata_placeholder.visible = False
+            if self.tbl_metadata:
+                self.tbl_metadata.visible = True
+            self._controller.get_metadata_excel_file(e.files)
+            return
+
+        self.create_alert("No file selected!")
+
+    def on_directory_picked(self, e: ft.FilePickerResultEvent) -> None:
+        if e.path:
+            export_format = self._pending_export_format or self.DEFAULT_EXPORT_FORMAT
+            self._controller.export_csv(e.path, export_format)
+            return
+
+        self.create_alert("No folder selected!")
+
+    def _configure_static_page_settings(self) -> None:
+        self._page.title = "FoundingGIDE Ontology"
+        self._page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
+        self._page.scroll = ft.ScrollMode.AUTO
+
+    def _configure_page_theme(self) -> None:
+        self._page.theme_mode = ft.ThemeMode.LIGHT
+        self._page.padding = 20
+        self._page.bgcolor = self.PRIMARY_COLOR
+        self._page.theme = ft.Theme(
+            color_scheme_seed=self.PRIMARY_COLOR,
+            use_material3=True,
+        )
+        self._page.appbar = ft.AppBar(
+            title=ft.Text("FoundingGIDE Ontology"),
+            center_title=False,
+            bgcolor=self.SURFACE_COLOR,
+            actions=[
+                ft.IconButton(
+                    icon=ft.Icons.HELP_OUTLINE,
+                    tooltip="Select an Excel file and start the search",
+                )
+            ],
+        )
+
+    def _build_controls(self) -> None:
+        self._build_upload_controls()
+        self._build_export_controls()
+        self._build_search_controls()
+        self._build_table_controls()
+
+    def _build_upload_controls(self) -> None:
+        self.img_founding_gide = ft.Column(
+            [
+                ft.Image(
+                    src="assets/images/foundingGIDE.png",
+                    width=260,
+                    fit=ft.ImageFit.CONTAIN,
+                ),
+            ],
+            spacing=4,
+        )
+
+        # button select the metadata excel file
+        self.file_picker = ft.FilePicker()
+        self._page.overlay.append(self.file_picker)
+
+        self.btn_select_metadata_file = ft.FilledButton(
+            text="Select metadata file",
+            icon=ft.Icons.UPLOAD_FILE,
+            tooltip="Select the metadata excel file to search for ontologies",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
+            expand = True,
+        )
+
+        # button to reset the app
+        self.btn_reset_app = ft.FilledButton(
+            text="Reset",
+            icon=ft.Icons.RESTART_ALT,
+            tooltip="Clear loaded data and reset the app",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
+            expand=True,
+        )
+
+    def _build_export_controls(self) -> None:
+        self.directory_picker = ft.FilePicker()
+        self._page.overlay.append(self.directory_picker)
+
+        self.dd_export_format = ft.Dropdown(
+            label="Export format",
+            value=self.DEFAULT_EXPORT_FORMAT,
+            options=[
+                ft.dropdown.Option("csv", "CSV (.csv)"),
+                ft.dropdown.Option("excel", "Excel (.xlsx)"),
+            ],
+            width=220,
+        )
+
+        self.btn_export_csv = ft.FilledButton(
+            text="Download",
+            icon=ft.Icons.DOWNLOAD,
+            tooltip="Download ontology exports in CSV or Excel format",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
+            expand=True,
+        )
+
+    def _build_search_controls(self) -> None:
+        self.btn_search = ft.FilledTonalButton(
+            text="Search ontologies",
+            icon=ft.Icons.SEARCH,
+            tooltip="Performs ontology searches on uploaded metadata",
+            bgcolor=self.BUTTON_BG_COLOR,
+            color=self.BUTTON_TEXT_COLOR,
+        )
+
+        # search progress indicator
+        self.search_progress = ft.ProgressBar(
+            width=180,
+            value=None,
+            color=self.PRIMARY_CONTAINER_COLOR,
+        )
+
+        self.search_status_text = ft.Text(
+            "Searching ontologies...",
+            size=12,
+            color=self.PRIMARY_COLOR,
+        )
+
+        self.search_status_row = ft.Row(
+            controls=[self.search_progress, self.search_status_text],
+            spacing=12,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            visible=False,
+        )
+
+    def _build_table_controls(self) -> None:
+        self.chip_project_id = ft.Chip(
+            label=ft.Text(self.DEFAULT_PROJECT_LABEL),
+            leading=ft.Icon(ft.Icons.BADGE, size=18),
+            bgcolor=self.PRIMARY_CONTAINER_COLOR,
+            shape=ft.StadiumBorder(),
+        )
+
+        # chip records
+        self.chip_metadata_count = ft.Chip(
+            label=ft.Text(self.DEFAULT_METADATA_COUNT_LABEL),
+            leading=ft.Icon(ft.Icons.TABLE_ROWS, size=18),
+            bgcolor=self.PRIMARY_CONTAINER_COLOR,
+            shape=ft.StadiumBorder(),
+        )
+
+        # empty table state
+        self.tbl_metadata = ft.DataTable(
+            columns=[
+                self._build_column("Code", "code"),
+                self._build_column("Domain", "domain"),
+                self._build_column("Value", "value"),
+                self._build_column("Ontology", "ontology"),
+                self._build_column("Synonyms", "synonyms"),
+                self._build_column("IRI", "iri"),
+                self._build_column("", "choice"),
+            ],
+            rows=[],
+            data_row_min_height=52,
+            data_row_max_height=240,
+            heading_row_color=self.SURFACE_VARIANT_COLOR,
+            divider_thickness=0.8,
+            visible=False,
+        )
+
+        self.empty_metadata_placeholder = ft.Column(
+            [
+                ft.Icon(ft.Icons.TABLE_VIEW, size=56, color=self.PRIMARY_COLOR),
+                ft.Text(
+                    value=(
+                        "Load an Excel file to see the metadata organized "
+                        "in the table."
+                    ),
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            visible=True,
+        )
+
+        # card for the table
+        self.card_metadata_table = ft.Card(
+            elevation=2,
+            content=ft.Container(
+                padding=16,
+                expand=True,
+                content=ft.Column(
+                    controls=[
+                        ft.Row(
+                            controls=[
+                                ft.Text("Metadata", size=18, weight=ft.FontWeight.W_600),
+                                self.chip_project_id,
+                                self.chip_metadata_count,
+                                ft.Container(expand=True),
+                                self.btn_search,
+                            ],
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        ft.Divider(
+                            height=12,
+                            thickness=1,
+                            color=self.OUTLINE_VARIANT_COLOR,
+                        ),
+                        self.search_status_row,
+                        ft.Container(
+                            bgcolor=self.SURFACE_COLOR,
+                            border_radius=12,
+                            padding=8,
+                            content=ft.Column(
+                                controls=[
+                                    ft.Row(
+                                        [
+                                            ft.Container(
+                                                expand=True,
+                                                content=self.tbl_metadata,
+                                            )
+                                        ],
+                                        scroll=ft.ScrollMode.AUTO,
+                                        expand=True,
+                                    ),
+                                    self.empty_metadata_placeholder,
+                                ],
+                                scroll=ft.ScrollMode.AUTO,
+                                expand=True,
+                            ),
+                        ),
+                    ],
+                    spacing=12,
+                ),
+            ),
+        )
+
+    def _define_layout(self) -> ft.Column:
+        return ft.Column(
+            controls=[
+                self.img_founding_gide,
+                ft.Row(
+                    controls=[
+                        self.btn_select_metadata_file,
+                        self.btn_export_csv,
+                        self.btn_reset_app,
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=12,
+                ),
+                ft.Row(
+                    controls=[ft.Container(content=self.card_metadata_table)],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    expand=True,
+                ),
+            ],
+            spacing=20,
+        )
+
+    def _bind_events(self) -> None:
+        if not self._controller:
+            raise RuntimeError("Controller must be set before loading the interface")
+
+    def _bind_events(self):
+        """
+        Wire UI events to controller callbacks; requires controller to be set.
+        """
+        self.file_picker.on_result = self.on_file_picked
+        self.btn_select_metadata_file.on_click = (
+        lambda _: self.file_picker.pick_files(
+            allow_multiple=False,
+            allowed_extensions=["xlsx"],
+            )
+        )
+        self.btn_search.on_click = self._controller.lookup_term
+        self.directory_picker.on_result = self.on_directory_picked
+        self.btn_export_csv.on_click = self.show_export_dialog
+        self.btn_reset_app.on_click = self._controller.request_reset
+
+    def _set_initial_button_state(self) -> None:
+        self._apply_button_state(
+            select_metadata_disabled=False,
+            export_disabled=True,
+            reset_disabled=False,
+            search_disabled=True,
+        )
+
+    def _apply_button_state(
+            self,
+            *,
+            select_metadata_disabled: bool,
+            export_disabled: bool,
+            reset_disabled: bool,
+            search_disabled: bool,
+    ) -> None:
+        if self.btn_select_metadata_file:
+            self.btn_select_metadata_file.disabled = select_metadata_disabled
+        if self.btn_export_csv:
+            self.btn_export_csv.disabled = export_disabled
+        if self.btn_reset_app:
+            self.btn_reset_app.disabled = reset_disabled
+        if self.btn_search:
+            self.btn_search.disabled = search_disabled
         self.update_page()
 
-    def on_directory_picked(self, e: ft.FilePickerResultEvent):
-        """Handle directory selection for exports."""
-        if e.path:
-            export_format = self._pending_export_format or "csv"
-            self._controller.export_csv(e.path, export_format)
-        else:
-            self.create_alert("No folder selected!")
+    def _close_dialog(self, dialog: ft.AlertDialog | None) -> None:
+        if dialog:
+            self._page.close(dialog)
 
     def _build_column(self, title: str, column_key: str) -> ft.DataColumn:
         """ Return a configured DataColumn for the metadata table."""
         width = self.COLUMN_WIDTHS.get(column_key)
         label_control: ft.Control = ft.Text(title)
+
         if width:
-            label_text = ft.Text(
-                title,
-                weight=ft.FontWeight.BOLD,
-            )
             label_control = ft.Container(
                 width=width,
-                content=label_text,
+                content=ft.Text(title, weight=ft.FontWeight.BOLD),
             )
+
         return ft.DataColumn(label_control)
 
     def _build_cell(self, value, column_key: str) -> ft.DataCell:
@@ -538,18 +582,19 @@ class ViewOntology(ft.Control):
         if column_key == "choice":
             content = self._build_choice_cell(value)
         elif column_key == "iri" and value:
-            icon_button = ft.IconButton(
-                icon=ft.Icons.OPEN_IN_NEW,
-                on_click=lambda _, url=value: self._page.launch_url(url),
-                tooltip=value,
-                icon_color=self.PRIMARY_COLOR,
-                style=ft.ButtonStyle(
-                    padding=0,
-                    overlay_color=ft.Colors.TRANSPARENT,
-                ),
-            )
             content = ft.Row(
-                controls=[icon_button],
+                controls=[
+                    ft.IconButton(
+                        icon=ft.Icons.OPEN_IN_NEW,
+                        on_click=lambda _, url=value: self._page.launch_url(url),
+                        tooltip=value,
+                        icon_color=self.PRIMARY_COLOR,
+                        style=ft.ButtonStyle(
+                            padding=0,
+                            overlay_color=ft.Colors.TRANSPARENT,
+                        ),
+                    )
+                ],
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
@@ -560,63 +605,66 @@ class ViewOntology(ft.Control):
                 max_lines=3,
                 overflow=ft.TextOverflow.ELLIPSIS,
             )
+
         alignment = (
             ft.alignment.center
             if column_key == "choice"
             else ft.alignment.center_left
         )
-        content = ft.Container(
-            width=width,
-            content=content,
-            alignment=alignment,
-            expand=True,
+
+        return ft.DataCell(
+            ft.Container(
+                width=width,
+                content=content,
+                alignment=alignment,
+                expand=True,
+            )
         )
-        return ft.DataCell(content)
 
     def _build_choice_cell(self, row: dict) -> ft.Control:
         option = row.get("selection_option")
         if not option:
             return ft.Text("")
         selected_value = row.get("selected_value") or None
-
         group_id = row.get("selection_group")
+
         checkbox = ft.Checkbox(
             value=option["value"] == selected_value,
             label="",
             data=option["value"],
         )
 
-        if group_id:
-            self._choice_groups.setdefault(group_id, []).append(checkbox)
+        if not group_id:
+            return checkbox
 
-            def on_change(e, group=group_id):
-                if not e.control.value:
-                    group_checkboxes = self._choice_groups.get(group, [])
-                    if group_checkboxes:
-                        default_checkbox = group_checkboxes[0]
-                        for group_checkbox in group_checkboxes:
-                            group_checkbox.value = (group_checkbox is
-                                                    default_checkbox)
-                        self._controller.set_user_selection(
-                            group, default_checkbox.data
-                        )
-                        for group_checkbox in group_checkboxes:
-                            group_checkbox.update()
-                    return
+        self._choice_groups.setdefault(group_id, []).append(checkbox)
 
-                for group_checkbox in self._choice_groups.get(group, []):
+        def on_change(e, group=group_id):
+            group_checkboxes = self._choice_groups.get(group, [])
+            if not group_checkboxes:
+                return
+
+            if not e.control.value:
+                default_checkbox = group_checkboxes[0]
+                for group_checkbox in group_checkboxes:
+                    group_checkbox.value = group_checkbox is default_checkbox
+                self._controller.set_user_selection(group, default_checkbox.data)
+            else:
+                for group_checkbox in group_checkboxes:
                     group_checkbox.value = group_checkbox is e.control
                 self._controller.set_user_selection(group, e.control.data)
-                for group_checkbox in self._choice_groups.get(group, []):
-                    group_checkbox.update()
 
-            checkbox.on_change = on_change
+            for group_checkbox in group_checkboxes:
+                group_checkbox.update()
 
+        checkbox.on_change = on_change
         return checkbox
 
     def _row_color(self, row: dict) -> str:
         group_index = row.get("group_index")
         if group_index is None:
             return ""
-        return self.SURFACE_COLOR if group_index % 2 == 0 \
-            else self.SURFACE_VARIANT_COLOR
+
+        if group_index % 2 == 0:
+            return self.SURFACE_COLOR
+        return self.SURFACE_VARIANT_COLOR
