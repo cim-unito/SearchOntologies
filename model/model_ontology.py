@@ -42,7 +42,7 @@ class ModelOntology:
         """Return the dataset id from loaded metadata."""
         return self._metadata_container.get_dataset_id()
 
-    def export_csv(
+    def export_metadata_files(
             self,
             directory_path: str,
             user_selection: dict[str, str],
@@ -50,7 +50,7 @@ class ModelOntology:
             export_format: str = "csv",
             empty_value: str = "",
     ) -> list[Path]:
-        """Export ontology selections to CSV or Excel files."""
+        """Export ontology selections to files in the requested format."""
         metadata_container = self._metadata_container
         dataset_id = metadata_container.get_dataset_id()
         fieldnames, row = self._build_export_row(
@@ -85,6 +85,23 @@ class ModelOntology:
             )
 
         return export_paths
+
+    def export_csv(
+            self,
+            directory_path: str,
+            user_selection: dict[str, str],
+            selection_details: list[OntologySelection] | None = None,
+            export_format: str = "csv",
+            empty_value: str = "",
+    ) -> list[Path]:
+        """Backward-compatible alias for :meth:`export_metadata_files`."""
+        return self.export_metadata_files(
+            directory_path=directory_path,
+            user_selection=user_selection,
+            selection_details=selection_details,
+            export_format=export_format,
+            empty_value=empty_value,
+        )
 
     def reset_metadata(self) -> None:
         """Reset stored metadata values to initial state."""

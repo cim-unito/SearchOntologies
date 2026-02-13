@@ -279,7 +279,7 @@ class ViewOntology(ft.Control):
         """Handle selected directory for exporting results."""
         if e.path:
             export_format = self._pending_export_format or self.DEFAULT_EXPORT_FORMAT
-            self._controller.export_csv(e.path, export_format)
+            self._controller.export_metadata_files(e.path, export_format)
             return
 
         self.create_alert("No folder selected!")

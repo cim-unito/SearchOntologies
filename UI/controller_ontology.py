@@ -74,15 +74,17 @@ class ControllerOntology:
         finally:
             self._view.set_search_loading(False)
 
-    def export_csv(self, directory_path: str, export_format: str = "csv"):
-        """Export ontology codes to a file in the selected format."""
+    def export_metadata_files(self,
+                              directory_path: str,
+                              export_format: str = "csv"):
+        """Export ontology and synonym files in the selected format."""
         if not directory_path:
             self._view.create_alert("No folder selected!")
             return
         if export_format not in {"csv", "excel"}:
             self._view.create_alert("Unsupported export format selected.")
             return
-        export_paths = self._model.export_csv(
+        export_paths = self._model.export_metadata_files(
             directory_path,
             self._user_selection,
             list(self._selection_details.values()),
@@ -95,9 +97,13 @@ class ControllerOntology:
 
         exported_files = "\n".join(f"- {path}" for path in export_paths)
         self._view.create_alert(
-            "CSV files saved:\n"
+            "Export files saved:\n"
             f"{exported_files}"
         )
+
+    def export_csv(self, directory_path: str, export_format: str = "csv"):
+        """Backward-compatible alias for :meth:`export_metadata_files`."""
+        self.export_metadata_files(directory_path, export_format)
 
     def request_reset(self, e: ft.ControlEvent) -> None:
         """Request a confirmation dialog before resetting the app."""
