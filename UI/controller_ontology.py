@@ -23,15 +23,6 @@ class ControllerOntology:
         self._selection_candidates: dict[str, dict[str, OntologySelection]] = {}
         self._selection_details: dict[str, OntologySelection] = {}
 
-    def set_user_selection(self, group_id: str, value: str):
-        """Store the user's selection for a given row group."""
-        self._user_selection[group_id] = value
-        selection = self._selection_candidates.get(group_id, {}).get(value)
-        if selection:
-            self._selection_details[group_id] = selection
-        else:
-            self._selection_details.pop(group_id, None)
-
     def get_metadata_excel_file(
             self,
             metadata_xlsx_file: list[FilePickerFile] | None,
@@ -77,6 +68,15 @@ class ControllerOntology:
         finally:
             self._view.set_search_loading(False)
 
+    def set_user_selection(self, group_id: str, value: str):
+        """Store the user's selection for a given row group."""
+        self._user_selection[group_id] = value
+        selection = self._selection_candidates.get(group_id, {}).get(value)
+        if selection:
+            self._selection_details[group_id] = selection
+        else:
+            self._selection_details.pop(group_id, None)
+
     def export_metadata_files(
             self,
             directory_path: str,
@@ -105,10 +105,6 @@ class ControllerOntology:
             "Export files saved:\n"
             f"{exported_files}"
         )
-
-    def export_csv(self, directory_path: str, export_format: str = "csv") -> None:
-        """Backward-compatible alias for :meth:`export_metadata_files`."""
-        self.export_metadata_files(directory_path, export_format)
 
     def request_reset(self, e: ft.ControlEvent) -> None:
         """Request a confirmation dialog before resetting the app."""

@@ -86,23 +86,6 @@ class ModelOntology:
 
         return export_paths
 
-    def export_csv(
-            self,
-            directory_path: str,
-            user_selection: dict[str, str],
-            selection_details: list[OntologySelection] | None = None,
-            export_format: str = "csv",
-            empty_value: str = "",
-    ) -> list[Path]:
-        """Backward-compatible alias for :meth:`export_metadata_files`."""
-        return self.export_metadata_files(
-            directory_path=directory_path,
-            user_selection=user_selection,
-            selection_details=selection_details,
-            export_format=export_format,
-            empty_value=empty_value,
-        )
-
     def reset_metadata(self) -> None:
         """Reset stored metadata values to initial state."""
         self._metadata_container.reset_values()
@@ -156,7 +139,7 @@ class ModelOntology:
                 continue
 
             for term in terms:
-                group_id = self.build_group_id(metadata, term, entry_index)
+                group_id = self._build_group_id(metadata, term, entry_index)
                 entry_index += 1
                 ontology_code = user_selection.get(group_id, "")
                 if ontology_code:
@@ -249,11 +232,6 @@ class ModelOntology:
             )
         ]
 
-    def _format_ontology_domain(self, metadata) -> str:
-        ontology_id = getattr(metadata.domain.ontology, "id", "") or ""
-        domain_value = metadata.subdomain or metadata.domain.id
-        return f"{self._pascal_case(ontology_id)}{self._pascal_case(domain_value)}"
-
     def _iter_searchable_metadata(self):
         for metadata in self._metadata_entries:
             domain = getattr(metadata, "domain", None)
@@ -280,8 +258,13 @@ class ModelOntology:
             for item in result_items
         ]
 
+    def _format_ontology_domain(self, metadata) -> str:
+        ontology_id = getattr(metadata.domain.ontology, "id", "") or ""
+        domain_value = metadata.subdomain or metadata.domain.id
+        return f"{self._pascal_case(ontology_id)}{self._pascal_case(domain_value)}"
+
     @staticmethod
-    def build_group_id(metadata, term: str, index: int) -> str:
+    def _build_group_id(metadata, term: str, index: int) -> str:
         safe_term = term if term else "<empty>"
         return f"{metadata.code}:{safe_term}:{index}"
 

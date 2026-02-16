@@ -39,7 +39,7 @@ class ViewOntology(ft.Control):
         # Main controls (initialized in _build_controls)
         self.img_founding_gide: ft.Column | None = None
         self.btn_select_metadata_file: ft.FilledButton | None = None
-        self.btn_export_csv: ft.FilledButton | None = None
+        self.btn_export_file: ft.FilledButton | None = None
         self.btn_reset_app: ft.FilledButton | None = None
         self.file_picker: ft.FilePicker | None = None
         self.directory_picker: ft.FilePicker | None = None
@@ -369,7 +369,7 @@ class ViewOntology(ft.Control):
             width=220,
         )
 
-        self.btn_export_csv = ft.FilledButton(
+        self.btn_export_file = ft.FilledButton(
             text="Download",
             icon=ft.Icons.DOWNLOAD,
             tooltip="Download ontology exports in CSV or Excel format",
@@ -520,7 +520,7 @@ class ViewOntology(ft.Control):
                 ft.Row(
                     controls=[
                         self.btn_select_metadata_file,
-                        self.btn_export_csv,
+                        self.btn_export_file,
                         self.btn_reset_app,
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
@@ -546,7 +546,7 @@ class ViewOntology(ft.Control):
         )
         self.btn_search.on_click = self._controller.lookup_term
         self.directory_picker.on_result = self.on_directory_picked
-        self.btn_export_csv.on_click = self.show_export_dialog
+        self.btn_export_file.on_click = self.show_export_dialog
         self.btn_reset_app.on_click = self._controller.request_reset
 
     def _set_initial_button_state(self) -> None:
@@ -569,8 +569,8 @@ class ViewOntology(ft.Control):
         """Apply button enabled/disabled state centrally."""
         if self.btn_select_metadata_file:
             self.btn_select_metadata_file.disabled = select_metadata_disabled
-        if self.btn_export_csv:
-            self.btn_export_csv.disabled = export_disabled
+        if self.btn_export_file:
+            self.btn_export_file.disabled = export_disabled
         if self.btn_reset_app:
             self.btn_reset_app.disabled = reset_disabled
         if self.btn_search:
