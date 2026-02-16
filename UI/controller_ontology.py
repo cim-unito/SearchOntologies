@@ -11,6 +11,8 @@ from model.ontology_selection import OntologySelection
 
 
 class ControllerOntology:
+    """Coordinate UI interactions for metadata loading, lookup, and export."""
+
     def __init__(self, view, model):
         # the view, with the graphical elements of the UI
         self._view = view
@@ -30,9 +32,10 @@ class ControllerOntology:
         else:
             self._selection_details.pop(group_id, None)
 
-    def get_metadata_excel_file(self,
-                                metadata_xlsx_file: list[
-                                                        FilePickerFile] | None):
+    def get_metadata_excel_file(
+            self,
+            metadata_xlsx_file: list[FilePickerFile] | None,
+    ) -> None:
         """Read predefined fields from the selected Excel file."""
         if not metadata_xlsx_file:
             self._view.create_alert("No file selected!")
@@ -74,9 +77,11 @@ class ControllerOntology:
         finally:
             self._view.set_search_loading(False)
 
-    def export_metadata_files(self,
-                              directory_path: str,
-                              export_format: str = "csv"):
+    def export_metadata_files(
+            self,
+            directory_path: str,
+            export_format: str = "csv",
+    ) -> None:
         """Export ontology and synonym files in the selected format."""
         if not directory_path:
             self._view.create_alert("No folder selected!")
@@ -101,7 +106,7 @@ class ControllerOntology:
             f"{exported_files}"
         )
 
-    def export_csv(self, directory_path: str, export_format: str = "csv"):
+    def export_csv(self, directory_path: str, export_format: str = "csv") -> None:
         """Backward-compatible alias for :meth:`export_metadata_files`."""
         self.export_metadata_files(directory_path, export_format)
 
@@ -132,8 +137,7 @@ class ControllerOntology:
             if domain.id.casefold() == "dataset":
                 continue
 
-            ontology = metadata.domain.ontology if getattr(metadata, "domain",
-                                                           None) else None
+            ontology = metadata.domain.ontology if getattr(metadata, "domain", None) else None
             terms = self._model.split_terms(
                 getattr(metadata, "cell_value", "")) or [""]
 
@@ -246,6 +250,7 @@ class ControllerOntology:
 
     @staticmethod
     def _merge_synonyms(synonyms: list[str]) -> list[str]:
+        """Return synonyms de-duplicated case-insensitively preserving order."""
         merged = []
         seen = set()
         for synonym in synonyms or []:
@@ -260,6 +265,7 @@ class ControllerOntology:
 
     @staticmethod
     def _normalize_candidates(ontology):
+        """Normalize ontology values to a non-empty candidate list."""
         if ontology is None:
             return [None]
         if isinstance(ontology, str):

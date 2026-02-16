@@ -132,18 +132,6 @@ class ModelOntology:
         """Return a cleaned list of comma-separated terms."""
         return self._split_terms(cell_value)
 
-    @staticmethod
-    def build_group_id(metadata, term: str, index: int) -> str:
-        safe_term = term if term else "<empty>"
-        return f"{metadata.code}:{safe_term}:{index}"
-
-    @staticmethod
-    def _split_terms(cell_value: str) -> list[str]:
-        if not cell_value:
-            return []
-        parts = [part.strip() for part in cell_value.split(",")]
-        return [part for part in parts if part]
-
     def _build_export_row(
             self,
             user_selection: dict[str, str],
@@ -291,6 +279,18 @@ class ModelOntology:
             )
             for item in result_items
         ]
+
+    @staticmethod
+    def build_group_id(metadata, term: str, index: int) -> str:
+        safe_term = term if term else "<empty>"
+        return f"{metadata.code}:{safe_term}:{index}"
+
+    @staticmethod
+    def _split_terms(cell_value: str) -> list[str]:
+        if not cell_value:
+            return []
+        parts = [part.strip() for part in cell_value.split(",")]
+        return [part for part in parts if part]
 
     @staticmethod
     def _resolve_ontology_id(metadata: Metadata) -> str:
