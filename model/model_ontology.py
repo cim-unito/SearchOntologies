@@ -24,15 +24,15 @@ class ModelOntology:
         self._metadata_container = MetadataMappingDao.load_metadata_mapping(
             self._domains)
         self._metadata_file_io = metadata_file_io or MetadataFileIO()
-        self._metadata_entries = tuple(
-            self._metadata_container.get_cells_sorted().values()
+        self._metadata_entries: tuple[Metadata, ...] = (
+            self._metadata_container.get_metadata_entries_sorted()
         )
 
     @property
     def bioportal(self) -> BioPortalClient:
         return self._bioportal
 
-    def read_metadata_fields(self, file_path: str):
+    def read_metadata_fields(self, file_path: str | Path):
         """Populate metadata values by reading the provided Excel file."""
         file_path = Path(file_path)
         return self._metadata_file_io.read_metadata_values(
@@ -202,7 +202,7 @@ class ModelOntology:
                 )
             ]
         return [
-            self._metadata_file_io.write_ontology_export(
+            self._metadata_file_io.write_ontology_export_csv(
                 directory,
                 dataset_id,
                 fieldnames,
@@ -226,7 +226,7 @@ class ModelOntology:
                 )
             ]
         return [
-            self._metadata_file_io.write_synonyms_export(
+            self._metadata_file_io.write_synonyms_export_csv(
                 directory,
                 dataset_id,
                 rows,

@@ -16,7 +16,7 @@ class MetadataContainer:
         """Return the metadata mapping keyed by code."""
         return self.cells
 
-    def get_cells_sorted(self) -> Dict[str, Metadata]:
+    def get_cells_sorted(self) -> Dict[Metadata]:
         """Return the metadata mapping ordered by Excel cell reference."""
         return {
             code: metadata
@@ -25,6 +25,10 @@ class MetadataContainer:
                 key=lambda item: self._cell_sort_key(item[0])
             )
         }
+
+    def get_metadata_entries_sorted(self) -> tuple[Metadata, ...]:
+        """Return metadata entries ordered by Excel cell reference."""
+        return tuple(self.get_cells_sorted().values())
 
     def get_metadata(self, code: str) -> Metadata | None:
         """Return the metadata entry for ``code`` if present."""
@@ -41,6 +45,7 @@ class MetadataContainer:
         return metadata.cell_value
 
     def get_dataset_id(self) -> str:
+        """Return the dataset id."""
         for metadata in self.get_cells().values():
             domain = getattr(metadata, "domain", None)
             if domain and domain.id.casefold() == "dataset":

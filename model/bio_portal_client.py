@@ -79,7 +79,7 @@ class BioPortalClient:
             identifier = self._best_identifier(item)
             results.append({
                 "identifier": identifier,
-                "notation": self._best_notation(item, identifier),
+                "notation": self._best_notation(identifier),
                 "purl": self._extract_purl(identifier),
                 "synonyms": self._extract_synonyms(item),
             })
@@ -122,7 +122,7 @@ class BioPortalClient:
         return None
 
     @staticmethod
-    def _best_notation(item: dict, identifier: str | None) -> str:
+    def _best_notation(identifier: str | None) -> str:
         """Extract a compact notation (e.g., ``162`` from ``DOID_162``)."""
         if identifier and "_" in identifier:
             return identifier.rsplit("_", maxsplit=1)[-1]
