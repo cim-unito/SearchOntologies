@@ -140,7 +140,7 @@ class ModelOntology:
                 continue
 
             for term in terms:
-                group_id = self._build_group_id(metadata, term, entry_index)
+                group_id = self.build_group_id(metadata, term, entry_index)
                 entry_index += 1
                 ontology_code = user_selection.get(group_id, "")
                 if ontology_code:
@@ -265,7 +265,7 @@ class ModelOntology:
         return f"{self._pascal_case(ontology_id)}{self._pascal_case(domain_value)}"
 
     @staticmethod
-    def _build_group_id(metadata, term: str, index: int) -> str:
+    def build_group_id(metadata, term: str, index: int) -> str:
         safe_term = term if term else "<empty>"
         return f"{metadata.code}:{safe_term}:{index}"
 

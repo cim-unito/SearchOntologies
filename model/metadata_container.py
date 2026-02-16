@@ -16,7 +16,7 @@ class MetadataContainer:
         """Return the metadata mapping keyed by code."""
         return self.cells
 
-    def get_cells_sorted(self) -> Dict[Metadata]:
+    def get_cells_sorted(self) -> Dict[str, Metadata]:
         """Return the metadata mapping ordered by Excel cell reference."""
         return {
             code: metadata
