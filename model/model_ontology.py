@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Iterator
 
 from model.bio_portal_client import BioPortalClient
 from model.metadata import Metadata
@@ -232,7 +233,7 @@ class ModelOntology:
             )
         ]
 
-    def _iter_searchable_metadata(self):
+    def _iter_searchable_metadata(self) -> Iterator[Metadata]:
         for metadata in self._metadata_entries:
             domain = getattr(metadata, "domain", None)
             ontology = getattr(domain, "ontology", None) if domain else None
