@@ -24,6 +24,7 @@ For each metadata value, the app queries BioPortal and lets users select the mos
 - [Configuration files](#configuration-files)
 - [Troubleshooting](#troubleshooting)
 - [Limitations and notes](#limitations-and-notes)
+- [License](#license)
 
 ---
 
@@ -191,3 +192,9 @@ Any update to the Excel template should be mirrored in this file.
 - Only selected codes are exported; unselected terms remain empty (or `NULL` fallback).
 
 If you plan to support multiple templates, consider introducing versioned mapping profiles and a template validator step before lookup.
+
+---
+## License
+
+SearchOntologies is distributed under the terms of the GNU General Public License (GPL) v3 or later.
+See [`LICENSE.md`](LICENSE.md) for details.
